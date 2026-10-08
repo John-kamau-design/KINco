@@ -8,6 +8,10 @@
     {
       "source": "/api-health",
       "destination": "/api/index.ts"
+    },
+    {
+      "source": "/",
+      "destination": "/index.html"
     }
   ]
 }
