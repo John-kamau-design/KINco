@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import { supabase } from '../config/supabase';
+import * as bcrypt from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
 
 export const signInCheck = async (req: Request, res: Response) => {
   const { nationalId, fullName, password, phoneNumber } = req.body;
