@@ -10,6 +10,22 @@
       "destination": "/api/index.ts"
     },
     {
+      "source": "/",
+      "destination": "/frontend/index.html"
+    },
+    {
+      "source": "/driver",
+      "destination": "/frontend/driver.html"
+    },
+    {
+      "source": "/clerk",
+      "destination": "/frontend/clerk.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/frontend/admin.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/frontend/$1"
     }
