@@ -24,11 +24,11 @@ app.use('/api/farmers', farmerRoutes);
 app.use('/api/milk', milkRoutes);
 app.use('/api', apiRoutes);
 
-// 3. Serve Frontend Static Files
-const frontendPath = path.join(__dirname, '../../frontend');
+// 3. Serve Frontend Static Files using process.cwd() (Root directory on Vercel)
+const frontendPath = path.resolve(process.cwd(), 'frontend');
 app.use(express.static(frontendPath));
 
-// 4. Fallback route to serve index.html for root page & direct paths
+// 4. Fallback route to serve index.html for root page & direct navigation
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
