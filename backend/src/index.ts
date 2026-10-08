@@ -13,23 +13,22 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 1. API Health Check Endpoint
-app.get('/api-health', (req, res) => {
-  res.send('KINco API operational');
-});
-
-// 2. API Routes
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/farmers', farmerRoutes);
 app.use('/api/milk', milkRoutes);
 app.use('/api', apiRoutes);
 
-// 3. Serve Frontend Static Files using process.cwd() (Root directory on Vercel)
+app.get('/api-health', (_req, res) => {
+  res.json({ status: 'ok', service: 'KINco API' });
+});
+
+// Serve static frontend files relative to project root
 const frontendPath = path.resolve(process.cwd(), 'frontend');
+
 app.use(express.static(frontendPath));
 
-// 4. Fallback route to serve index.html for root page & direct navigation
-app.get('*', (req, res) => {
+app.get('*', (_req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
