@@ -2,29 +2,45 @@ import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 
 // Fetch farmer name by National ID or KID for driver screen verification
+import { Request, Response } from 'express';
+import { supabase } from '../config/supabase';
+
+// Fetch farmer name by National ID or KID for driver screen verification
 export const getFarmerByDetail = async (req: Request, res: Response) => {
   const { identifier } = req.params;
 
   try {
-    const { data: farmer, error } = await supabase
+    // 1. Try querying farmers table directly
+    const { data: farmer, error: farmerErr } = await supabase
+      .from('farmers')
+      .select('id, kid, full_name, phone_number, national_id')
+      .or(`kid.eq.${identifier},national_id.eq.${identifier}`)
+      .maybeSingle();
+
+    if (farmer) {
+      return res.status(200).json(farmer);
+    }
+
+    // 2. Fallback query if linked through users relation
+    const { data: userFarmer, error: userErr } = await supabase
       .from('farmers')
       .select(`
         id,
         kid,
-        users!inner (
+        users (
           full_name,
           national_id,
           phone_number
         )
       `)
-      .or(`kid.eq.${identifier},users.national_id.eq.${identifier}`)
-      .single();
+      .or(`kid.eq.${identifier}`)
+      .maybeSingle();
 
-    if (error || !farmer) {
-      return res.status(404).json({ message: 'Farmer not found' });
+    if (userFarmer) {
+      return res.status(200).json(userFarmer);
     }
 
-    return res.status(200).json(farmer);
+    return res.status(404).json({ message: 'Farmer not found' });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
