@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
 import * as dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import farmerRoutes from './routes/farmers';
@@ -20,16 +19,7 @@ app.use('/api/milk', milkRoutes);
 app.use('/api', apiRoutes);
 
 app.get('/api-health', (_req, res) => {
-  res.json({ status: 'ok', service: 'KINco API' });
-});
-
-// Serve static frontend files relative to project root
-const frontendPath = path.resolve(process.cwd(), 'frontend');
-
-app.use(express.static(frontendPath));
-
-app.get('*', (_req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
+  res.json({ status: 'ok', message: 'KINco API operational' });
 });
 
 if (process.env.NODE_ENV !== 'production') {
