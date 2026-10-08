@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import farmerRoutes from './routes/farmers';
 import milkRoutes from './routes/milk';
@@ -19,7 +19,12 @@ app.get('/', (req, res) => {
   res.send('KINco API operational');
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`[SERVER ACTIVE] KINco Backend live on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`[SERVER ACTIVE] KINco Backend live on port ${PORT}`);
+  });
+}
+
+// Export the Express app for Vercel Serverless Functions
+export default app;
