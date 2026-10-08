@@ -1,43 +1,58 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 
-// Fetch farmer name by National ID or KID for driver screen verification
-import { Request, Response } from 'express';
-import { supabase } from '../config/supabase';
-
-// Fetch farmer name by National ID or KID for driver screen verification
 export const getFarmerByDetail = async (req: Request, res: Response) => {
   const { identifier } = req.params;
 
   try {
-    // 1. Try querying farmers table directly
-    const { data: farmer, error: farmerErr } = await supabase
-      .from('farmers')
-      .select('id, kid, full_name, phone_number, national_id')
-      .or(`kid.eq.${identifier},national_id.eq.${identifier}`)
+    // 1. Check if identifier matches a National ID in users table
+    const { data: userMatch, error: userErr } = await supabase
+      .from('users')
+      .select('id, full_name, phone_number, national_id, role')
+      .eq('national_id', identifier)
+      .eq('role', 'FARMER')
       .maybeSingle();
 
-    if (farmer) {
-      return res.status(200).json(farmer);
+    if (userMatch) {
+      // Fetch associated farmer record for KID
+      const { data: farmerMatch } = await supabase
+        .from('farmers')
+        .select('id, kid, is_shareholder')
+        .eq('user_id', userMatch.id)
+        .maybeSingle();
+
+      return res.status(200).json({
+        farmer_id: farmerMatch?.id || null,
+        user_id: userMatch.id,
+        full_name: userMatch.full_name,
+        phone_number: userMatch.phone_number,
+        national_id: userMatch.national_id,
+        kid: farmerMatch?.kid || 'N/A'
+      });
     }
 
-    // 2. Fallback query if linked through users relation
-    const { data: userFarmer, error: userErr } = await supabase
+    // 2. Check if identifier matches a KID in farmers table
+    const { data: kidMatch, error: kidErr } = await supabase
       .from('farmers')
-      .select(`
-        id,
-        kid,
-        users (
-          full_name,
-          national_id,
-          phone_number
-        )
-      `)
-      .or(`kid.eq.${identifier}`)
+      .select('id, user_id, kid, is_shareholder')
+      .eq('kid', identifier)
       .maybeSingle();
 
-    if (userFarmer) {
-      return res.status(200).json(userFarmer);
+    if (kidMatch) {
+      const { data: userDetail } = await supabase
+        .from('users')
+        .select('full_name, phone_number, national_id')
+        .eq('id', kidMatch.user_id)
+        .single();
+
+      return res.status(200).json({
+        farmer_id: kidMatch.id,
+        user_id: kidMatch.user_id,
+        full_name: userDetail?.full_name || '',
+        phone_number: userDetail?.phone_number || '',
+        national_id: userDetail?.national_id || '',
+        kid: kidMatch.kid
+      });
     }
 
     return res.status(404).json({ message: 'Farmer not found' });
