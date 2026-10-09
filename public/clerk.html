@@ -3,70 +3,160 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Clerk Dashboard - KINco</title>
+  <title>KINco - Clerk Station & Onboarding</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 p-6">
-
-  <div class="max-w-6xl mx-auto bg-white rounded-lg shadow-xl border p-6 space-y-6">
-    <div class="flex justify-between items-center border-b pb-4">
-      <h1 class="text-2xl font-bold text-sky-600">Welcome Clerk!</h1>
-      <button onclick="logout()" class="bg-red-500 text-white font-bold px-4 py-1.5 rounded">LOGOUT</button>
-    </div>
-
-    <!-- TABS -->
-    <div class="flex gap-2 border-b">
-      <button onclick="switchTab('tab-register')" class="bg-sky-500 text-white font-bold px-4 py-2 rounded-t">Register</button>
-      <button onclick="switchTab('tab-tank')" class="bg-sky-500 text-white font-bold px-4 py-2 rounded-t">Intake Tank</button>
-      <button onclick="switchTab('tab-agrovet')" class="bg-sky-500 text-white font-bold px-4 py-2 rounded-t">Agrovet</button>
-      <button onclick="switchTab('tab-payments')" class="bg-sky-500 text-white font-bold px-4 py-2 rounded-t">Payments</button>
-    </div>
-
-    <!-- TAB 1: REGISTER FARMER / DRIVER -->
-    <div id="tab-register" class="tab-content space-y-4">
-      <h2 class="text-lg font-bold">Register Farmer</h2>
-      <form onsubmit="registerFarmer(event)" class="max-w-md space-y-3">
-        <input type="text" id="reg-name" placeholder="Full Name" required class="w-full border p-2 rounded">
-        <input type="text" id="reg-phone" placeholder="Phone Number" required class="w-full border p-2 rounded">
-        <input type="text" id="reg-id" placeholder="National ID Number" required class="w-full border p-2 rounded">
-        <label class="flex items-center gap-2">
-          <input type="checkbox" id="reg-shareholder"> Shareholder (Check if Yes)
-        </label>
-        <button type="submit" class="bg-green-500 text-white font-bold px-6 py-2 rounded">Submit Registration</button>
-      </form>
-    </div>
-
-    <!-- TAB 2: INTAKE TANK RECONCILIATION -->
-    <div id="tab-tank" class="tab-content hidden space-y-4">
-      <h2 class="text-lg font-bold">Tank Reconciliation</h2>
-      <form onsubmit="submitReconcile(event)" class="max-w-md space-y-3">
-        <input type="number" id="driver-id-input" placeholder="Driver User ID" required class="w-full border p-2 rounded">
-        <input type="number" step="0.1" id="offload-amount" placeholder="Enter Offloaded Tank Amount (L)" required class="w-full border p-2 rounded">
-        <button type="submit" class="bg-sky-500 text-white font-bold px-6 py-2 rounded">RECORD & RECONCILE</button>
-      </form>
-    </div>
-
-    <!-- TAB 3: AGROVET -->
-    <div id="tab-agrovet" class="tab-content hidden space-y-4">
-      <h2 class="text-lg font-bold">Add Agrovet Item</h2>
-      <form onsubmit="addAgrovetItem(event)" class="max-w-md space-y-3">
-        <input type="text" id="item-name" placeholder="Item Name" required class="w-full border p-2 rounded">
-        <input type="number" id="item-qty" placeholder="Quantity" required class="w-full border p-2 rounded">
-        <input type="text" id="item-source" placeholder="Received From" required class="w-full border p-2 rounded">
-        <button type="submit" class="bg-green-500 text-white font-bold px-6 py-2 rounded">SAVE ITEM</button>
-      </form>
-    </div>
-
-    <!-- TAB 4: PAYMENTS @ 45 KSH/L -->
-    <div id="tab-payments" class="tab-content hidden space-y-4">
-      <h2 class="text-lg font-bold">Farmer Payments (@ 45 KSh/L)</h2>
-      <div class="flex gap-2">
-        <input type="number" id="pay-farmer-id" placeholder="Enter Farmer ID" class="border p-2 rounded">
-        <button onclick="processPayAll()" class="bg-blue-600 text-white font-bold px-4 py-2 rounded">PAY ALL UNPAID</button>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+  <!-- Header Navigation -->
+  <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex flex-wrap justify-between items-center shadow-lg">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-xl shadow">K</div>
+      <div>
+        <h1 class="text-xl font-bold text-emerald-400 leading-tight">KINco Intake Station</h1>
+        <p class="text-xs text-slate-400">Clerk Offload & Driver Onboarding Portal</p>
       </div>
     </div>
-  </div>
+    <div class="flex items-center space-x-4">
+      <span id="clerk-user-display" class="text-sm font-medium bg-slate-700/60 px-3 py-1.5 rounded-full border border-slate-600">Clerk</span>
+      <button onclick="logout()" class="bg-red-600/80 hover:bg-red-600 text-white font-semibold text-xs px-4 py-2 rounded-lg transition shadow">Sign Out</button>
+    </div>
+  </header>
 
-  <script src="js/clerk.js"></script>
+  <!-- Main Container -->
+  <main class="max-w-4xl mx-auto p-6 space-y-8">
+
+    <!-- Station Overview Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
+        <p class="text-xs text-slate-400 font-medium uppercase">Station Status</p>
+        <p class="text-2xl font-bold text-emerald-400 mt-1">Active</p>
+      </div>
+      <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
+        <p class="text-xs text-slate-400 font-medium uppercase">Today's Intake Target</p>
+        <p class="text-2xl font-bold text-white mt-1">12,500 L</p>
+      </div>
+      <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
+        <p class="text-xs text-slate-400 font-medium uppercase">Quick Access</p>
+        <a href="/admin.html" class="inline-block text-sm text-emerald-400 hover:underline font-semibold mt-2">Go to Admin Portal →</a>
+      </div>
+    </div>
+
+    <!-- Driver Onboarding Section for Clerks -->
+    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+      <div class="border-b border-slate-700 pb-4 mb-6">
+        <h2 class="text-xl font-bold text-emerald-400">Register Route Driver</h2>
+        <p class="text-sm text-slate-400">Onboard new collection drivers locally at the intake station.</p>
+      </div>
+
+      <form id="clerk-onboard-form" onsubmit="handleClerkOnboarding(event)" class="space-y-5">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Full Name</label>
+          <input type="text" id="clerk-staff-name" required placeholder="e.g. Samuel Kamau" 
+                 class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">National ID / Staff ID</label>
+            <input type="text" id="clerk-staff-national-id" required placeholder="e.g. 34567890 or DRV-102" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Phone Number</label>
+            <input type="tel" id="clerk-staff-phone" required placeholder="e.g. +254712345678" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Assigned System Role</label>
+            <select id="clerk-staff-role" class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+              <option value="DRIVER" selected>Driver / Collector</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Initial Password</label>
+            <input type="password" id="clerk-staff-password" required placeholder="••••••••" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          </div>
+        </div>
+
+        <div id="clerk-onboard-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
+
+        <button type="submit" id="clerk-onboard-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
+          Register Driver
+        </button>
+      </form>
+    </section>
+
+  </main>
+
+  <script>
+    // Verify session
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('kinco_token');
+      const userStr = localStorage.getItem('kinco_user');
+      if (!token || !userStr) {
+        window.location.href = '/';
+        return;
+      }
+      try {
+        const user = JSON.parse(userStr);
+        document.getElementById('clerk-user-display').innerText = `${user.full_name || 'Clerk'} (${user.role})`;
+      } catch (e) {}
+    });
+
+    async function handleClerkOnboarding(e) {
+      e.preventDefault();
+      const btn = document.getElementById('clerk-onboard-btn');
+      const status = document.getElementById('clerk-onboard-status');
+      const token = localStorage.getItem('kinco_token');
+
+      const payload = {
+        full_name: document.getElementById('clerk-staff-name').value.trim(),
+        national_id: document.getElementById('clerk-staff-national-id').value.trim(),
+        phone_number: document.getElementById('clerk-staff-phone').value.trim(),
+        role: document.getElementById('clerk-staff-role').value,
+        password: document.getElementById('clerk-staff-password').value
+      };
+
+      btn.disabled = true;
+      btn.innerText = 'Registering Driver...';
+      status.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to register driver');
+
+        status.className = 'p-4 rounded-lg text-sm font-medium bg-emerald-950/80 text-emerald-200 border border-emerald-500/50';
+        status.innerText = `Success! Driver ${payload.full_name} registered successfully.`;
+        status.classList.remove('hidden');
+        document.getElementById('clerk-onboard-form').reset();
+      } catch (err) {
+        status.className = 'p-4 rounded-lg text-sm font-medium bg-red-950/80 text-red-200 border border-red-500/50';
+        status.innerText = err.message || 'Server error during registration';
+        status.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Register Driver';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('kinco_token');
+      localStorage.removeItem('kinco_user');
+      window.location.href = '/';
+    }
+  </script>
 </body>
 </html>
