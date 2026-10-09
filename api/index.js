@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 let authRoutes, farmerRoutes, milkRoutes, apiRoutes;
@@ -20,7 +21,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// API Endpoints
+// 1. API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/farmers', farmerRoutes);
 app.use('/api/milk', milkRoutes);
@@ -28,6 +29,15 @@ app.use('/api', apiRoutes);
 
 app.get('/api-health', (_req, res) => {
   res.json({ status: 'ok', message: 'KINco API operational' });
+});
+
+// 2. Serve Static Frontend Files from dist/public
+const staticPath = path.join(__dirname, '../dist/public');
+app.use(express.static(staticPath));
+
+// 3. Fallback to index.html for UI routes
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(staticPath, 'index.html'));
 });
 
 module.exports = app;
