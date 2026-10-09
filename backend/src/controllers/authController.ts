@@ -19,7 +19,6 @@ export const registerUser = async (req: Request, res: Response) => {
       });
     }
 
-    // 1. Check if user already exists
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
@@ -32,10 +31,8 @@ export const registerUser = async (req: Request, res: Response) => {
       });
     }
 
-    // 2. Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
-    // 3. Insert record into Supabase
     const { data, error } = await supabase
       .from('users')
       .insert([
@@ -77,7 +74,6 @@ export const loginUser = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'National ID and password are required' });
     }
 
-    // Fetch user
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
@@ -88,13 +84,11 @@ export const loginUser = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Compare hash
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Generate JWT Token
     const token = jwt.sign(
       { id: user.id, national_id: user.national_id, role: user.role },
       JWT_SECRET,
@@ -140,3 +134,8 @@ export const checkSignIn = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Server error checking sign-in eligibility' });
   }
 };
+
+// Aliases to ensure backward compatibility with backend/src/routes/auth.ts imports
+export const login = loginUser;
+export const signInCheck = checkSignIn;
+export const register = registerUser;
