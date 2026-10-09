@@ -6,6 +6,7 @@ import authRoutes from './routes/auth';
 import farmerRoutes from './routes/farmers';
 import milkRoutes from './routes/milk';
 import apiRoutes from './routes/api';
+import collectionRoutes from './routes/collection';
 
 dotenv.config();
 
@@ -18,6 +19,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/farmers', farmerRoutes);
 app.use('/api/milk', milkRoutes);
 app.use('/api', apiRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/collection', collectionRoutes);
 
 app.get('/api-health', (_req, res) => {
   res.json({ status: 'ok', message: 'KINco API operational' });

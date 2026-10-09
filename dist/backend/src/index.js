@@ -44,6 +44,7 @@ const auth_1 = __importDefault(require("./routes/auth"));
 const farmers_1 = __importDefault(require("./routes/farmers"));
 const milk_1 = __importDefault(require("./routes/milk"));
 const api_1 = __importDefault(require("./routes/api"));
+const collection_1 = __importDefault(require("./routes/collection"));
 dotenv.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
@@ -53,6 +54,8 @@ app.use('/api/auth', auth_1.default);
 app.use('/api/farmers', farmers_1.default);
 app.use('/api/milk', milk_1.default);
 app.use('/api', api_1.default);
+app.use('/api/auth', auth_1.default);
+app.use('/api/collection', collection_1.default);
 app.get('/api-health', (_req, res) => {
     res.json({ status: 'ok', message: 'KINco API operational' });
 });

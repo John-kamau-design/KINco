@@ -3,30 +3,157 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KINco - Admin Dashboard</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <title>KINco - Admin Management Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen p-6">
-  <header class="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
-    <h1 class="text-2xl font-bold text-emerald-400">KINco Admin Control Center</h1>
-    <button onclick="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-semibold text-sm">Sign Out</button>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+  <!-- Header Navigation -->
+  <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex flex-wrap justify-between items-center shadow-lg">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-xl shadow">K</div>
+      <div>
+        <h1 class="text-xl font-bold text-emerald-400 leading-tight">KINco Admin Control Center</h1>
+        <p class="text-xs text-slate-400">System Administration & Onboarding</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-4">
+      <span id="user-display" class="text-sm font-medium bg-slate-700/60 px-3 py-1.5 rounded-full border border-slate-600">Admin</span>
+      <button onclick="logout()" class="bg-red-600/80 hover:bg-red-600 text-white font-semibold text-xs px-4 py-2 rounded-lg transition shadow">Sign Out</button>
+    </div>
   </header>
 
-  <main class="max-w-4xl mx-auto bg-slate-800 p-6 rounded-lg shadow-xl">
-    <h2 class="text-xl font-semibold mb-4">System Overview</h2>
-    <p class="text-slate-300 mb-6">Welcome, System Administrator. Use this portal to register new drivers, clerks, and view system metrics.</p>
+  <!-- Main Container -->
+  <main class="max-w-4xl mx-auto p-6 space-y-8">
     
+    <!-- Navigation Quick Links -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <a href="/clerk.html" class="block p-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-center font-bold">
-        Open Clerk Intake & Registration Portal →
+      <a href="/clerk.html" class="p-4 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition flex items-center justify-between group shadow-sm">
+        <div>
+          <h3 class="font-semibold text-emerald-400 group-hover:underline">Open Clerk Intake Station →</h3>
+          <p class="text-xs text-slate-400">Offload milk tanks, reconcile intake, and register local drivers</p>
+        </div>
       </a>
-      <a href="/driver.html" class="block p-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-center font-bold">
-        Open Driver Collection Portal →
+      <a href="/driver.html" class="p-4 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition flex items-center justify-between group shadow-sm">
+        <div>
+          <h3 class="font-semibold text-emerald-400 group-hover:underline">Open Driver Collection Portal →</h3>
+          <p class="text-xs text-slate-400">Simulate or view driver collection routes & farmer intake</p>
+        </div>
       </a>
     </div>
+
+    <!-- Admin Onboarding Form -->
+    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+      <div class="border-b border-slate-700 pb-4 mb-6">
+        <h2 class="text-xl font-bold text-emerald-400">Onboard New System User</h2>
+        <p class="text-sm text-slate-400">Register new Drivers, Clerks, or System Administrators with Supabase sync.</p>
+      </div>
+
+      <form id="admin-onboard-form" onsubmit="handleAdminOnboarding(event)" class="space-y-5">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Full Name</label>
+          <input type="text" id="staff-name" required placeholder="e.g. Jane Wanjiku" 
+                 class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">National ID / Staff ID</label>
+            <input type="text" id="staff-national-id" required placeholder="e.g. 34567890 or ADM-002" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Phone Number</label>
+            <input type="tel" id="staff-phone" required placeholder="e.g. +254712345678" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Assigned System Role</label>
+            <select id="staff-role" class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+              <option value="DRIVER">Driver / Collector</option>
+              <option value="CLERK">Clerk / Intake Station</option>
+              <option value="ADMIN">System Administrator</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Initial Password</label>
+            <input type="password" id="staff-password" required placeholder="••••••••" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          </div>
+        </div>
+
+        <div id="admin-onboard-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
+
+        <button type="submit" id="admin-onboard-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
+          Register User System-Wide
+        </button>
+      </form>
+    </section>
+
   </main>
 
   <script>
+    // Verify session
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('kinco_token');
+      const userStr = localStorage.getItem('kinco_user');
+      if (!token || !userStr) {
+        window.location.href = '/';
+        return;
+      }
+      try {
+        const user = JSON.parse(userStr);
+        document.getElementById('user-display').innerText = `${user.full_name || 'Admin'} (${user.role})`;
+      } catch (e) {}
+    });
+
+    async function handleAdminOnboarding(e) {
+      e.preventDefault();
+      const btn = document.getElementById('admin-onboard-btn');
+      const status = document.getElementById('admin-onboard-status');
+      const token = localStorage.getItem('kinco_token');
+
+      const payload = {
+        full_name: document.getElementById('staff-name').value.trim(),
+        national_id: document.getElementById('staff-national-id').value.trim(),
+        phone_number: document.getElementById('staff-phone').value.trim(),
+        role: document.getElementById('staff-role').value,
+        password: document.getElementById('staff-password').value
+      };
+
+      btn.disabled = true;
+      btn.innerText = 'Registering User...';
+      status.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to register user');
+
+        status.className = 'p-4 rounded-lg text-sm font-medium bg-emerald-950/80 text-emerald-200 border border-emerald-500/50';
+        status.innerText = `Success! ${payload.full_name} registered successfully as ${payload.role}.`;
+        status.classList.remove('hidden');
+        document.getElementById('admin-onboard-form').reset();
+      } catch (err) {
+        status.className = 'p-4 rounded-lg text-sm font-medium bg-red-950/80 text-red-200 border border-red-500/50';
+        status.innerText = err.message || 'Server error during registration';
+        status.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Register User System-Wide';
+      }
+    }
+
     function logout() {
       localStorage.removeItem('kinco_token');
       localStorage.removeItem('kinco_user');

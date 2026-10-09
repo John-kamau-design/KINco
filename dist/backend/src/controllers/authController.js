@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkSignIn = exports.loginUser = exports.registerUser = void 0;
+exports.register = exports.signInCheck = exports.login = exports.checkSignIn = exports.loginUser = exports.registerUser = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const supabase_1 = require("../config/supabase");
@@ -20,7 +20,6 @@ const registerUser = async (req, res) => {
                 message: 'Full name, National ID, and initial password are required'
             });
         }
-        // 1. Check if user already exists
         const { data: existingUser } = await supabase_1.supabase
             .from('users')
             .select('id')
@@ -31,9 +30,7 @@ const registerUser = async (req, res) => {
                 message: 'A user with this National ID / Staff ID is already registered'
             });
         }
-        // 2. Hash password
         const password_hash = await bcrypt_1.default.hash(password, 10);
-        // 3. Insert record into Supabase
         const { data, error } = await supabase_1.supabase
             .from('users')
             .insert([
@@ -72,7 +69,6 @@ const loginUser = async (req, res) => {
         if (!national_id || !password) {
             return res.status(400).json({ message: 'National ID and password are required' });
         }
-        // Fetch user
         const { data: user, error } = await supabase_1.supabase
             .from('users')
             .select('*')
@@ -81,12 +77,10 @@ const loginUser = async (req, res) => {
         if (error || !user) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
-        // Compare hash
         const isMatch = await bcrypt_1.default.compare(password, user.password_hash);
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
-        // Generate JWT Token
         const token = jsonwebtoken_1.default.sign({ id: user.id, national_id: user.national_id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
         return res.status(200).json({
             message: 'Login successful',
@@ -126,3 +120,7 @@ const checkSignIn = async (req, res) => {
     }
 };
 exports.checkSignIn = checkSignIn;
+// Aliases to ensure backward compatibility with backend/src/routes/auth.ts imports
+exports.login = exports.loginUser;
+exports.signInCheck = exports.checkSignIn;
+exports.register = exports.registerUser;

@@ -3,89 +3,208 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Driver Intake - KINco</title>
+  <title>KINco - Driver Collection Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-3 max-w-md mx-auto">
-
-  <div class="bg-white rounded-lg shadow-lg border border-gray-300 p-4 space-y-4">
-    <!-- DRIVER HEADER -->
-    <div class="flex justify-between items-center border-b pb-2">
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-12">
+  <!-- Header -->
+  <header class="bg-slate-800 border-b border-slate-700 px-4 py-4 flex justify-between items-center shadow-lg">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-xl shadow">K</div>
       <div>
-        <h1 class="font-bold text-gray-800 text-lg">INTAKE MILK!</h1>
-        <p id="driver-welcome" class="text-xs text-gray-500">Driver View</p>
+        <h1 class="text-lg font-bold text-emerald-400 leading-tight">KINco Driver Collection</h1>
+        <p class="text-xs text-slate-400">On-Route Milk Intake Entry</p>
       </div>
-      <button onclick="logout()" class="bg-red-500 text-white text-xs px-2 py-1 rounded">EXIT</button>
+    </div>
+    <button onclick="logout()" class="bg-red-600/80 hover:bg-red-600 text-white font-semibold text-xs px-3 py-2 rounded-lg transition">Sign Out</button>
+  </header>
+
+  <main class="max-w-md mx-auto p-4 space-y-6">
+
+    <!-- Route Stats Summary -->
+    <div class="grid grid-cols-2 gap-3">
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow">
+        <p class="text-xs text-slate-400 uppercase font-semibold">Today's Volume</p>
+        <p id="stat-liters" class="text-2xl font-bold text-emerald-400 mt-1">0.0 L</p>
+      </div>
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow">
+        <p class="text-xs text-slate-400 uppercase font-semibold">Pickups Made</p>
+        <p id="stat-pickups" class="text-2xl font-bold text-white mt-1">0</p>
+      </div>
     </div>
 
-    <!-- INTAKE FORM -->
-    <form onsubmit="confirmAndSubmitIntake(event)" class="space-y-3">
+    <!-- Collection Input Form -->
+    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-4">
+      <h2 class="text-base font-bold text-emerald-400 border-b border-slate-700 pb-2">Record Farmer Collection</h2>
+
       <div>
-        <label class="block text-xs font-bold text-gray-600">Enter FARMER ID or KID</label>
+        <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Farmer Code (KID)</label>
         <div class="flex gap-2">
-          <input type="text" id="farmer-id-input" required class="flex-1 border p-2 rounded text-sm" placeholder="e.g. 12345678 or KID-7646">
-          <button type="button" onclick="verifyFarmer()" class="bg-sky-500 text-white px-3 py-1 rounded text-xs font-bold">FETCH</button>
+          <input type="text" id="farmer-code-input" placeholder="e.g. FARM-001" 
+                 class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500 uppercase text-sm">
+          <button type="button" onclick="searchFarmer()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 rounded-lg font-semibold text-xs border border-slate-600 transition">
+            Verify
+          </button>
         </div>
+        <p id="farmer-info" class="text-xs mt-2 hidden font-semibold text-emerald-300 bg-emerald-950/60 p-2 rounded border border-emerald-500/30"></p>
       </div>
 
-      <!-- AUTO-FETCHED FARMER NAME -->
-      <div id="farmer-info" class="hidden p-2 bg-sky-50 border border-sky-200 rounded text-xs font-bold text-sky-800">
-        Farmer: <span id="farmer-name-display">-</span>
+      <form id="collection-form" onsubmit="submitCollection(event)" class="space-y-4">
+        <input type="hidden" id="selected-farmer-id">
+
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Volume (Liters)</label>
+          <input type="number" step="0.1" min="0.1" id="volume-input" required placeholder="0.0" 
+                 class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white text-lg font-bold focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Cans Count</label>
+            <input type="number" min="1" id="cans-input" value="1" required 
+                   class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Route</label>
+            <select id="route-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500 text-sm">
+              <option value="RT-CENTRAL">Central Route</option>
+              <option value="RT-NORTH">North Route</option>
+              <option value="RT-SOUTH">South Route</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="status-msg" class="hidden p-3 rounded-lg text-xs font-medium"></div>
+
+        <button type="submit" id="submit-btn" disabled class="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
+          Submit Collection
+        </button>
+      </form>
+    </section>
+
+    <!-- Recent Log -->
+    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl">
+      <h3 class="text-sm font-bold text-slate-200 mb-3">Today's Route Log</h3>
+      <div id="collections-list" class="space-y-2 text-xs text-slate-400">
+        <p>Loading summary...</p>
       </div>
+    </section>
 
-      <!-- QUANTITY DROPDOWN (0.5L - 100.0L) -->
-      <div>
-        <label class="block text-xs font-bold text-gray-600">Litres In Taken</label>
-        <select id="litres-select" class="w-full border p-2 rounded text-sm font-semibold bg-white">
-          <!-- Populated by JS -->
-        </select>
-      </div>
+  </main>
 
-      <!-- SHIFT -->
-      <div>
-        <label class="block text-xs font-bold text-gray-600">Shift</label>
-        <select id="shift-select" class="w-full border p-2 rounded text-sm bg-white">
-          <option value="MORNING">MORNING</option>
-          <option value="EVENING">EVENING</option>
-        </select>
-      </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSummary();
+    });
 
-      <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded shadow">
-        SUBMIT INTAKE
-      </button>
-    </form>
+    async function searchFarmer() {
+      const code = document.getElementById('farmer-code-input').value.trim();
+      const infoEl = document.getElementById('farmer-info');
+      const submitBtn = document.getElementById('submit-btn');
+      const farmerIdInput = document.getElementById('selected-farmer-id');
 
-    <!-- INTAKE HISTORY FILTER -->
-    <div class="border-t pt-4 space-y-2">
-      <div class="flex justify-between items-center">
-        <h2 class="font-bold text-sm text-gray-700">Collection Records</h2>
-        <select id="timeframe-select" onchange="loadHistory()" class="border text-xs p-1 rounded">
-          <option value="TODAY">TODAY</option>
-          <option value="7 DAYS">7 DAYS</option>
-          <option value="14 DAYS">14 DAYS</option>
-          <option value="30 DAYS">30 DAYS</option>
-          <option value="2 MONTHS">2 MONTHS</option>
-        </select>
-      </div>
+      if (!code) return;
 
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs border">
-          <thead class="bg-gray-200 text-gray-700">
-            <tr>
-              <th class="p-1 border">Date</th>
-              <th class="p-1 border">Farmer</th>
-              <th class="p-1 border">Litres</th>
-              <th class="p-1 border">Shift</th>
-            </tr>
-          </thead>
-          <tbody id="history-table-body">
-            <!-- Dynamic Rows -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+      try {
+        const res = await fetch(`/api/collection/farmer/${code}`);
+        const data = await res.json();
 
-  <script src="js/driver.js"></script>
+        if (!res.ok) {
+          infoEl.className = 'text-xs mt-2 p-2 rounded bg-red-950/60 text-red-300 border border-red-500/30';
+          infoEl.innerText = data.message || 'Farmer not found';
+          infoEl.classList.remove('hidden');
+          submitBtn.disabled = true;
+          farmerIdInput.value = '';
+          return;
+        }
+
+        farmerIdInput.value = data.farmer.id;
+        infoEl.className = 'text-xs mt-2 p-2 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/30';
+        infoEl.innerText = `Verified: ${data.farmer.full_name || 'Farmer'} (${data.farmer.kid})`;
+        infoEl.classList.remove('hidden');
+        submitBtn.disabled = false;
+      } catch (err) {
+        infoEl.className = 'text-xs mt-2 p-2 rounded bg-red-950/60 text-red-300 border border-red-500/30';
+        infoEl.innerText = 'Error connecting to server';
+        infoEl.classList.remove('hidden');
+      }
+    }
+
+    async function submitCollection(e) {
+      e.preventDefault();
+      const statusEl = document.getElementById('status-msg');
+      const btn = document.getElementById('submit-btn');
+
+      const payload = {
+        farmer_id: document.getElementById('selected-farmer-id').value,
+        volume_liters: document.getElementById('volume-input').value,
+        can_count: document.getElementById('cans-input').value,
+        route_code: document.getElementById('route-select').value
+      };
+
+      btn.disabled = true;
+      btn.innerText = 'Recording...';
+
+      try {
+        const res = await fetch('/api/collection/record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to record collection');
+
+        statusEl.className = 'p-3 rounded-lg text-xs font-semibold bg-emerald-950 text-emerald-200 border border-emerald-500/40';
+        statusEl.innerText = `Recorded ${payload.volume_liters}L successfully!`;
+        statusEl.classList.remove('hidden');
+
+        document.getElementById('collection-form').reset();
+        document.getElementById('farmer-info').classList.add('hidden');
+        btn.disabled = true;
+
+        loadSummary();
+      } catch (err) {
+        statusEl.className = 'p-3 rounded-lg text-xs font-semibold bg-red-950 text-red-200 border border-red-500/40';
+        statusEl.innerText = err.message || 'Error recording collection';
+        statusEl.classList.remove('hidden');
+      } finally {
+        btn.innerText = 'Submit Collection';
+      }
+    }
+
+    async function loadSummary() {
+      try {
+        const res = await fetch('/api/collection/summary');
+        const data = await res.json();
+
+        if (res.ok) {
+          document.getElementById('stat-liters').innerText = `${data.totalLiters.toFixed(1)} L`;
+          document.getElementById('stat-pickups').innerText = data.totalPickups;
+
+          const listEl = document.getElementById('collections-list');
+          if (data.recentCollections.length === 0) {
+            listEl.innerHTML = '<p class="text-slate-500 italic">No collections recorded today yet.</p>';
+          } else {
+            listEl.innerHTML = data.recentCollections.slice(0, 5).map(item => `
+              <div class="flex justify-between items-center bg-slate-900 p-2.5 rounded-lg border border-slate-700/60">
+                <div>
+                  <p class="font-bold text-slate-200">${item.farmers?.full_name || 'Farmer'} (${item.farmers?.kid || 'N/A'})</p>
+                  <p class="text-[10px] text-slate-400">${new Date(item.collected_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                </div>
+                <span class="font-mono text-sm font-bold text-emerald-400">${item.volume_liters} L</span>
+              </div>
+            `).join('');
+          }
+        }
+      } catch (e) {}
+    }
+
+    function logout() {
+      localStorage.removeItem('kinco_token');
+      localStorage.removeItem('kinco_user');
+      window.location.href = '/';
+    }
+  </script>
 </body>
 </html>
