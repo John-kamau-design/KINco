@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { signInCheck, login } from '../controllers/authController';
+import { register, login, signInCheck } from '../controllers/authController';
 
 const router = Router();
-router.post('/signin-check', signInCheck);
+
+// Routes mounted under /api/auth
+router.post('/register', register);
 router.post('/login', login);
+router.post('/check-signin', signInCheck);
 
 export default router;

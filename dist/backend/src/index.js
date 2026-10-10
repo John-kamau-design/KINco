@@ -47,22 +47,28 @@ const api_1 = __importDefault(require("./routes/api"));
 const collection_1 = __importDefault(require("./routes/collection"));
 dotenv.config();
 const app = (0, express_1.default)();
+// Global Middlewares
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
-// 1. API Routes & Health Check
-app.use('/api/auth', auth_1.default);
-app.use('/api/farmers', farmers_1.default);
-app.use('/api/milk', milk_1.default);
-app.use('/api', api_1.default);
-app.use('/api/auth', auth_1.default);
-app.use('/api/collection', collection_1.default);
+app.use(express_1.default.urlencoded({ extended: true }));
+// 1. Health Check
 app.get('/api-health', (_req, res) => {
     res.json({ status: 'ok', message: 'KINco API operational' });
 });
-// 2. Serve Static Frontend Files from public/
+// 2. API Routes Mounting
+app.use('/api/auth', auth_1.default);
+app.use('/api/farmers', farmers_1.default);
+app.use('/api/milk', milk_1.default);
+app.use('/api/collection', collection_1.default);
+app.use('/api', api_1.default);
+// 3. Fallback 404 handler specifically for unhandled /api requests (Returns JSON, not HTML)
+app.use('/api/*', (_req, res) => {
+    res.status(404).json({ message: 'API endpoint not found' });
+});
+// 4. Serve Static Frontend Files from public/
 const publicPath = path_1.default.resolve(process.cwd(), 'public');
 app.use(express_1.default.static(publicPath));
-// 3. Fallback Route: Serve index.html for root domain and direct page navigation
+// 5. Fallback Route for Direct Page Navigation (HTML)
 app.get('*', (_req, res) => {
     res.sendFile(path_1.default.join(publicPath, 'index.html'));
 });
