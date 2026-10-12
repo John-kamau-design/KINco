@@ -29,7 +29,7 @@
       </div>
     </div>
 
-    <!-- VIEW 2: SIGN IN (CHECK ID FIRST) -->
+    <!-- VIEW 2: SIGN IN -->
     <div id="signin-view" class="p-6 hidden space-y-4">
       <h2 class="text-lg font-semibold text-gray-700">Sign IN</h2>
       <form id="signin-form" onsubmit="handleSignInCheck(event)" class="space-y-3">
@@ -87,44 +87,55 @@
       </form>
     </div>
 
-    <!-- VIEW 4: ADMIN / CLERK DASHBOARD (FARMER REGISTRATION - MATCHING ORIGINAL STYLE) -->
-    <div id="dashboard-view" class="p-6 hidden space-y-4">
+    <!-- VIEW 4: DASHBOARD HOME (Landing view after login) -->
+    <div id="dashboard-view" class="p-6 hidden space-y-6">
       <div class="flex justify-between items-center border-b pb-2">
-        <h2 class="text-lg font-semibold text-gray-700">Dashboard</h2>
+        <h2 class="text-lg font-semibold text-gray-700">Cooperative Dashboard</h2>
         <span id="user-role-badge" class="text-xs bg-sky-100 text-sky-800 font-bold px-2 py-1 rounded"></span>
       </div>
 
-      <div class="space-y-4">
-        <h3 class="text-sm font-bold text-sky-600 uppercase tracking-wide">Register New Farmer</h3>
-        
-        <form id="farmer-form" onsubmit="handleFarmerRegistration(event)" class="space-y-3">
-          <div>
-            <label class="block text-xs font-bold text-gray-600">Full Name</label>
-            <input type="text" id="farmer-name" required class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-gray-600">Phone Number</label>
-            <input type="text" id="farmer-phone" required class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-gray-600">ID Number</label>
-            <input type="text" id="farmer-id" class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-gray-600">Collection Route</label>
-            <input type="text" id="farmer-route" class="w-full border-b-2 border-sky-400 p-1 focus:outline-none" placeholder="e.g. Route A">
-          </div>
-
-          <p id="farmer-error" class="text-red-500 text-xs hidden font-bold"></p>
-          <p id="farmer-success" class="text-green-600 text-xs hidden font-bold"></p>
-
-          <div class="pt-4">
-            <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white py-2 rounded font-bold shadow">
-              Save Farmer Record
-            </button>
-          </div>
-        </form>
+      <div class="space-y-3 text-center py-4">
+        <p class="text-sm text-gray-600">Select an action below to proceed:</p>
+        <button onclick="showView('farmer-registration-view')" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 rounded shadow border-b-4 border-sky-600 transition">
+          Register New Farmer
+        </button>
       </div>
+    </div>
+
+    <!-- VIEW 5: FARMER REGISTRATION FORM (Triggered ONLY on button click) -->
+    <div id="farmer-registration-view" class="p-6 hidden space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h2 class="text-lg font-semibold text-gray-700">Register New Farmer</h2>
+        <button type="button" onclick="showView('dashboard-view')" class="text-xs bg-gray-300 hover:bg-gray-400 text-gray-800 px-2.5 py-1 rounded font-bold">Back</button>
+      </div>
+
+      <form id="farmer-form" onsubmit="handleFarmerRegistration(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-gray-600">Full Name</label>
+          <input type="text" id="farmer-name" required class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600">Phone Number</label>
+          <input type="text" id="farmer-phone" required class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600">ID Number</label>
+          <input type="text" id="farmer-id" class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600">Collection Route</label>
+          <input type="text" id="farmer-route" class="w-full border-b-2 border-sky-400 p-1 focus:outline-none" placeholder="e.g. Route A">
+        </div>
+
+        <p id="farmer-error" class="text-red-500 text-xs hidden font-bold"></p>
+        <p id="farmer-success" class="text-green-600 text-xs hidden font-bold"></p>
+
+        <div class="pt-4">
+          <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white py-2 rounded font-bold shadow">
+            Save Farmer Record
+          </button>
+        </div>
+      </form>
     </div>
 
   </div>
@@ -133,7 +144,7 @@
   <script src="js/auth.js"></script>
   <script>
     function showView(viewId) {
-      ['welcome-view', 'signin-view', 'login-view', 'dashboard-view'].forEach(id => {
+      ['welcome-view', 'signin-view', 'login-view', 'dashboard-view', 'farmer-registration-view'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
       });
@@ -148,7 +159,6 @@
       }
     }
 
-    // Farmer registration handler integrated natively
     async function handleFarmerRegistration(e) {
       e.preventDefault();
       const errorEl = document.getElementById('farmer-error');
