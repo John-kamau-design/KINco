@@ -17,10 +17,14 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Full name and phone number are required' });
     }
 
+    // Auto-generate unique cooperative farmer code
+    const farmer_code = `KNC-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const { data, error } = await supabase
       .from('farmers')
       .insert([
         {
+          farmer_code,
           full_name,
           phone_number,
           route: route || 'Default Route',

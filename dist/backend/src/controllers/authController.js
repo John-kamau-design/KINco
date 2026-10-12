@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.register = exports.signInCheck = exports.login = exports.checkSignIn = exports.loginUser = exports.registerUser = void 0;
-const bcrypt_1 = __importDefault(require("bcrypt"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const supabase_1 = require("../config/supabase");
 const JWT_SECRET = process.env.JWT_SECRET || 'kinco-secret-key-2026';
@@ -30,7 +30,7 @@ const registerUser = async (req, res) => {
                 message: 'A user with this National ID / Staff ID is already registered'
             });
         }
-        const password_hash = await bcrypt_1.default.hash(password, 10);
+        const password_hash = await bcryptjs_1.default.hash(password, 10);
         const { data, error } = await supabase_1.supabase
             .from('users')
             .insert([
@@ -77,7 +77,7 @@ const loginUser = async (req, res) => {
         if (error || !user) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
-        const isMatch = await bcrypt_1.default.compare(password, user.password_hash);
+        const isMatch = await bcryptjs_1.default.compare(password, user.password_hash);
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
