@@ -79,3 +79,48 @@ function routeUserByRole(role) {
   else if (role === 'ADMIN') window.location.href = '/admin.html';
   else alert('Farmer portal access restricted to Mobile App');
 }
+
+// Add this helper function inside public/js/auth.js
+function handleSuccessfulLogin(userData) {
+  // Save token and user info
+  localStorage.setItem('token', userData.token || '');
+  localStorage.setItem('user', JSON.stringify(userData.user || {}));
+
+  // Hide auth views and show dashboard view
+  const views = ['welcome-view', 'signin-view', 'login-view'];
+  views.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+
+  const dashboard = document.getElementById('dashboard-view');
+  if (dashboard) {
+    dashboard.classList.remove('hidden');
+  }
+
+  // Show logout button in header
+  const logoutBtn = document.getElementById('logout-nav-btn');
+  if (logoutBtn) {
+    logoutBtn.classList.remove('hidden');
+  }
+
+  // Set role badge if available
+  const roleBadge = document.getElementById('user-role-badge');
+  if (roleBadge && userData.user && userData.user.role) {
+    roleBadge.textContent = userData.user.role.toUpperCase();
+  }
+}
+
+function handleLogout() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  
+  // Hide dashboard, show welcome view
+  const dashboard = document.getElementById('dashboard-view');
+  if (dashboard) dashboard.classList.add('hidden');
+
+  const logoutBtn = document.getElementById('logout-nav-btn');
+  if (logoutBtn) logoutBtn.classList.add('hidden');
+
+  showView('welcome-view');
+}
