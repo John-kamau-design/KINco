@@ -5,8 +5,8 @@
     "node": "20.x"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && node -e \"require('fs').cpSync('public', 'dist/public', {recursive: true})\""
-  },
+  "build": "node -e \"require('fs').cpSync('public', 'dist/public', {recursive: true})\""
+},
   "dependencies": {
     ...
   }

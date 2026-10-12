@@ -44,6 +44,7 @@ app.get('*', (_req: Request, res: Response) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
+// Only listen on a local port if NOT running on Vercel / Production serverless
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {

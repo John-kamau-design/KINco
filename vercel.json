@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "nodeVersion": "20",
   "rewrites": [
     {
       "source": "/api/(.*)",
