@@ -4,6 +4,7 @@
   "description": "KINco Dairy Cooperative Management System",
   "main": "dist/backend/src/index.js",
   "scripts": {
+    "prebuild": "chmod +x node_modules/.bin/* || true",
     "build": "tsc -p tsconfig.json && node -e \"require('fs').cpSync('public', 'dist/public', {recursive: true})\""
   },
   "dependencies": {
