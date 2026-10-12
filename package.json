@@ -1,13 +1,22 @@
 {
   "name": "kinco",
   "version": "1.0.0",
-  "engines": {
-    "node": "20.x"
-  },
+  "description": "KINco Dairy Cooperative Management System",
+  "main": "dist/backend/src/index.js",
   "scripts": {
-  "build": "node -e \"require('fs').cpSync('public', 'dist/public', {recursive: true})\""
-},
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').cpSync('public', 'dist/public', {recursive: true})\""
+  },
   "dependencies": {
-    ...
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "@supabase/supabase-js": "^2.39.8",
+    "bcrypt": "^5.1.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.24",
+    "typescript": "^5.3.3"
   }
 }

@@ -61,17 +61,18 @@ app.use('/api/farmers', farmers_1.default);
 app.use('/api/milk', milk_1.default);
 app.use('/api/collection', collection_1.default);
 app.use('/api', api_1.default);
-// 3. Fallback 404 handler specifically for unhandled /api requests (Returns JSON, not HTML)
+// 3. Fallback 404 handler specifically for unhandled /api requests
 app.use('/api/*', (_req, res) => {
     res.status(404).json({ message: 'API endpoint not found' });
 });
-// 4. Serve Static Frontend Files from public/
+// 4. Serve Static Frontend Files from public/ (or dist/public during deployment)
 const publicPath = path_1.default.resolve(process.cwd(), 'public');
 app.use(express_1.default.static(publicPath));
-// 5. Fallback Route for Direct Page Navigation (HTML)
+// 5. Fallback Route for Direct Page Navigation
 app.get('*', (_req, res) => {
     res.sendFile(path_1.default.join(publicPath, 'index.html'));
 });
+// Only listen on a local port if NOT running on Vercel
 if (process.env.NODE_ENV !== 'production') {
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {

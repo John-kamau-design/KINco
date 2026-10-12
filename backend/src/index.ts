@@ -30,21 +30,21 @@ app.use('/api/milk', milkRoutes);
 app.use('/api/collection', collectionRoutes);
 app.use('/api', apiRoutes);
 
-// 3. Fallback 404 handler specifically for unhandled /api requests (Returns JSON, not HTML)
+// 3. Fallback 404 handler specifically for unhandled /api requests
 app.use('/api/*', (_req: Request, res: Response) => {
   res.status(404).json({ message: 'API endpoint not found' });
 });
 
-// 4. Serve Static Frontend Files from public/
+// 4. Serve Static Frontend Files from public/ (or dist/public during deployment)
 const publicPath = path.resolve(process.cwd(), 'public');
 app.use(express.static(publicPath));
 
-// 5. Fallback Route for Direct Page Navigation (HTML)
+// 5. Fallback Route for Direct Page Navigation
 app.get('*', (_req: Request, res: Response) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
-// Only listen on a local port if NOT running on Vercel / Production serverless
+// Only listen on a local port if NOT running on Vercel
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
