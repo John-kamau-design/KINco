@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "api/index.js",
   "scripts": {
-    "build": "node node_modules/typescript/lib/tsc.js -p tsconfig.json && node -e \"require('fs').cpSync('public', 'dist/public', {recursive: true})\""
-  },
+  "build": "tsc -p tsconfig.json && node -e \"require('fs').cpSync('public', 'dist/public', {recursive: true})\""
+}
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "bcrypt": "^5.1.1",
