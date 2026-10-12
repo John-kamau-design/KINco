@@ -1,5 +1,14 @@
 const API_BASE = '/api';
 
+// Toggle password visibility helper
+function togglePassword(inputId) {
+  const input = document.getElementById(inputId);
+  if (input) {
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+}
+
+// Single-Page View Switcher Helper
 function showView(viewId) {
   const views = ['welcome-view', 'signin-view', 'login-view', 'dashboard-view'];
   views.forEach(id => {
@@ -10,13 +19,7 @@ function showView(viewId) {
   if (target) target.classList.remove('hidden');
 }
 
-function togglePassword(inputId) {
-  const input = document.getElementById(inputId);
-  if (input) {
-    input.type = input.type === 'password' ? 'text' : 'password';
-  }
-}
-
+// Handler for Sign In / Check ID Endpoint
 async function handleSignInCheck(e) {
   e.preventDefault();
   const nationalId = document.getElementById('signin-id').value.trim();
@@ -40,8 +43,16 @@ async function handleSignInCheck(e) {
       return;
     }
 
-    // Pass role to route function
-    routeUserByRole(data.role, data.token, data.user);
+    // Save tokens and route user by role
+    if (data.token) {
+      localStorage.setItem('kinco_token', data.token);
+      localStorage.setItem('token', data.token);
+    }
+    if (data.user) {
+      localStorage.setItem('kinco_user', JSON.stringify(data.user));
+    }
+
+    routeUserByRole(data.role || (data.user && data.user.role));
   } catch (err) {
     if (errorEl) {
       errorEl.innerText = 'Server connection failed';
@@ -50,6 +61,7 @@ async function handleSignInCheck(e) {
   }
 }
 
+// Handler for User Login Endpoint
 async function handleLogin(e) {
   e.preventDefault();
   const nationalId = document.getElementById('login-id').value.trim();
@@ -74,14 +86,16 @@ async function handleLogin(e) {
       return;
     }
 
+    // Store token and user data across all key conventions
     const token = data.token;
     const user = data.user || { role: data.role };
 
     localStorage.setItem('kinco_token', token);
+    localStorage.setItem('token', token);
     localStorage.setItem('kinco_user', JSON.stringify(user));
-    localStorage.setItem('token', token); // Fallback for farmer route calls
 
-    routeUserByRole(user.role || data.role, token, user);
+    // Redirect user to their dedicated portal view
+    routeUserByRole(user.role || data.role);
   } catch (err) {
     if (errorEl) {
       errorEl.innerText = 'Server connection failed';
@@ -90,45 +104,27 @@ async function handleLogin(e) {
   }
 }
 
-function routeUserByRole(role, token, user) {
+// Role-Based Router to Static HTML Dashboards
+function routeUserByRole(role) {
   const normalizedRole = (role || '').toUpperCase();
 
-  if (normalizedRole === 'ADMIN' || normalizedRole === 'CLERK') {
-    showView('dashboard-view');
-    
-    // Show logout button in header
-    const logoutBtn = document.getElementById('logout-nav-btn');
-    if (logoutBtn) logoutBtn.classList.remove('hidden');
-
-    // Update role badge display
-    const roleBadge = document.getElementById('user-role-badge');
-    if (roleBadge) roleBadge.textContent = normalizedRole;
-
-    // Trigger dynamic dashboard renders if scripts are present
-    if (normalizedRole === 'ADMIN' && typeof renderAdminDashboard === 'function') {
-      renderAdminDashboard();
-    } else if (normalizedRole === 'CLERK' && typeof renderClerkDashboard === 'function') {
-      renderClerkDashboard();
-    }
+  if (normalizedRole === 'ADMIN') {
+    window.location.href = '/admin.html';
+  } else if (normalizedRole === 'CLERK') {
+    window.location.href = '/clerk.html';
   } else if (normalizedRole === 'DRIVER') {
-    showView('dashboard-view');
-    const logoutBtn = document.getElementById('logout-nav-btn');
-    if (logoutBtn) logoutBtn.classList.remove('hidden');
-    if (typeof renderDriverDashboard === 'function') {
-      renderDriverDashboard();
-    }
+    window.location.href = '/driver.html';
   } else {
     alert('Farmer portal access restricted to Mobile App');
   }
 }
 
+// Global Logout Handler
 function handleLogout() {
   localStorage.removeItem('kinco_token');
   localStorage.removeItem('kinco_user');
   localStorage.removeItem('token');
+  localStorage.removeItem('user');
   
-  const logoutBtn = document.getElementById('logout-nav-btn');
-  if (logoutBtn) logoutBtn.classList.add('hidden');
-
-  showView('welcome-view');
+  window.location.href = '/index.html';
 }

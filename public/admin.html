@@ -3,132 +3,162 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KINco - Admin Management Portal</title>
+  <title>KINCo - Admin Management Center</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen">
-  <!-- Header Navigation -->
-  <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex flex-wrap justify-between items-center shadow-lg">
+<body class="bg-[#0B132B] text-slate-100 min-h-screen font-sans antialiased">
+
+  <!-- TOP NAVBAR -->
+  <header class="bg-[#0F172A] border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
     <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-xl shadow">K</div>
+      <div class="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center font-bold text-slate-900 text-xl">
+        K
+      </div>
       <div>
-        <h1 class="text-xl font-bold text-emerald-400 leading-tight">KINco Admin Control Center</h1>
+        <h1 class="text-xl font-bold text-emerald-400">KINCo Admin Control Center</h1>
         <p class="text-xs text-slate-400">System Administration & Onboarding</p>
       </div>
     </div>
-    <div class="flex items-center space-x-4">
-      <span id="user-display" class="text-sm font-medium bg-slate-700/60 px-3 py-1.5 rounded-full border border-slate-600">Admin</span>
-      <button onclick="logout()" class="bg-red-600/80 hover:bg-red-600 text-white font-semibold text-xs px-4 py-2 rounded-lg transition shadow">Sign Out</button>
+
+    <div class="flex items-center space-x-3">
+      <span class="bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold px-4 py-2 rounded-full">
+        System Administrator (ADMIN)
+      </span>
+      <button onclick="handleLogout()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition">
+        Sign Out
+      </button>
     </div>
   </header>
 
-  <!-- Main Container -->
-  <main class="max-w-4xl mx-auto p-6 space-y-8">
-    
-    <!-- Navigation Quick Links -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <a href="/clerk.html" class="p-4 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition flex items-center justify-between group shadow-sm">
-        <div>
-          <h3 class="font-semibold text-emerald-400 group-hover:underline">Open Clerk Intake Station →</h3>
-          <p class="text-xs text-slate-400">Offload milk tanks, reconcile intake, and register local drivers</p>
-        </div>
+  <main class="max-w-6xl mx-auto p-6 md:p-8 space-y-8">
+
+    <!-- NAVIGATION CARDS -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <a href="/clerk.html" class="bg-[#1C2541]/60 hover:bg-[#1C2541] border border-slate-700/60 p-6 rounded-xl transition group block">
+        <h2 class="text-emerald-400 font-bold text-lg group-hover:underline flex items-center gap-1">
+          Open Clerk Intake Station &rarr;
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">
+          Offload milk tanks, reconcile intake, and register local drivers
+        </p>
       </a>
-      <a href="/driver.html" class="p-4 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition flex items-center justify-between group shadow-sm">
-        <div>
-          <h3 class="font-semibold text-emerald-400 group-hover:underline">Open Driver Collection Portal →</h3>
-          <p class="text-xs text-slate-400">Simulate or view driver collection routes & farmer intake</p>
-        </div>
+
+      <a href="/driver.html" class="bg-[#1C2541]/60 hover:bg-[#1C2541] border border-slate-700/60 p-6 rounded-xl transition group block">
+        <h2 class="text-emerald-400 font-bold text-lg group-hover:underline flex items-center gap-1">
+          Open Driver Collection Portal &rarr;
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">
+          Simulate or view driver collection routes & farmer intake
+        </p>
       </a>
     </div>
 
-    <!-- Admin Onboarding Form -->
-    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-      <div class="border-b border-slate-700 pb-4 mb-6">
-        <h2 class="text-xl font-bold text-emerald-400">Onboard New System User</h2>
-        <p class="text-sm text-slate-400">Register new Drivers, Clerks, or System Administrators with Supabase sync.</p>
+    <!-- ONBOARD NEW SYSTEM USER CARD -->
+    <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
+      <div class="border-b border-slate-700/60 pb-4">
+        <h2 class="text-2xl font-bold text-emerald-400">Onboard New System User</h2>
+        <p class="text-xs text-slate-400 mt-1">
+          Register new Drivers, Clerks, or System Administrators with Supabase sync.
+        </p>
       </div>
 
-      <form id="admin-onboard-form" onsubmit="handleAdminOnboarding(event)" class="space-y-5">
+      <form id="onboard-user-form" onsubmit="handleUserOnboarding(event)" class="space-y-5">
         <div>
-          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Full Name</label>
-          <input type="text" id="staff-name" required placeholder="e.g. Jane Wanjiku" 
-                 class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">FULL NAME</label>
+          <input type="text" id="user-fullname" required placeholder="e.g. Jane Wanjiku" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">National ID / Staff ID</label>
-            <input type="text" id="staff-national-id" required placeholder="e.g. 34567890 or ADM-002" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">NATIONAL ID / STAFF ID</label>
+            <input type="text" id="user-nationalid" required placeholder="e.g. 34567890 or ADM-002" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
           </div>
           <div>
-            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Phone Number</label>
-            <input type="tel" id="staff-phone" required placeholder="e.g. +254712345678" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">PHONE NUMBER</label>
+            <input type="text" id="user-phone" required placeholder="e.g. +254712345678" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Assigned System Role</label>
-            <select id="staff-role" class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">ASSIGNED SYSTEM ROLE</label>
+            <select id="user-role" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
               <option value="DRIVER">Driver / Collector</option>
               <option value="CLERK">Clerk / Intake Station</option>
               <option value="ADMIN">System Administrator</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Initial Password</label>
-            <input type="password" id="staff-password" required placeholder="••••••••" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">INITIAL PASSWORD</label>
+            <input type="password" id="user-password" required placeholder="••••••••" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
           </div>
         </div>
 
-        <div id="admin-onboard-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
+        <div id="onboard-alert" class="hidden text-xs font-bold p-3 rounded-lg"></div>
 
-        <button type="submit" id="admin-onboard-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-extrabold py-3.5 rounded-lg transition text-sm shadow-lg">
           Register User System-Wide
+        </button>
+      </form>
+    </section>
+
+    <!-- FARMER REGISTRATION MODULE -->
+    <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
+      <div class="border-b border-slate-700/60 pb-4">
+        <h2 class="text-2xl font-bold text-emerald-400">Register New Farmer</h2>
+        <p class="text-xs text-slate-400 mt-1">
+          Register cooperative farmers to issue unique KNC account codes.
+        </p>
+      </div>
+
+      <form id="farmer-form" onsubmit="handleFarmerRegistration(event)" class="space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">FARMER FULL NAME</label>
+            <input type="text" id="farmer-name" required placeholder="e.g. Mary Wanjiku" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">PHONE NUMBER</label>
+            <input type="text" id="farmer-phone" required placeholder="e.g. 0712345678" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">NATIONAL ID NUMBER</label>
+            <input type="text" id="farmer-id" placeholder="e.g. 12345678" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">COLLECTION ROUTE / ZONE</label>
+            <input type="text" id="farmer-route" placeholder="e.g. Kinyona Route A" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <div id="farmer-alert" class="hidden text-xs font-bold p-3 rounded-lg"></div>
+
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-extrabold py-3.5 rounded-lg transition text-sm shadow-lg">
+          Register Farmer
         </button>
       </form>
     </section>
 
   </main>
 
+  <script src="js/auth.js"></script>
+  <script src="js/admin.js"></script>
   <script>
-    // Verify session
-    document.addEventListener('DOMContentLoaded', () => {
-      const token = localStorage.getItem('kinco_token');
-      const userStr = localStorage.getItem('kinco_user');
-      if (!token || !userStr) {
-        window.location.href = '/';
-        return;
-      }
-      try {
-        const user = JSON.parse(userStr);
-        document.getElementById('user-display').innerText = `${user.full_name || 'Admin'} (${user.role})`;
-      } catch (e) {}
-    });
-
-    async function handleAdminOnboarding(e) {
+    async function handleFarmerRegistration(e) {
       e.preventDefault();
-      const btn = document.getElementById('admin-onboard-btn');
-      const status = document.getElementById('admin-onboard-status');
-      const token = localStorage.getItem('kinco_token');
+      const alertBox = document.getElementById('farmer-alert');
+      alertBox.classList.add('hidden');
 
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
       const payload = {
-        full_name: document.getElementById('staff-name').value.trim(),
-        national_id: document.getElementById('staff-national-id').value.trim(),
-        phone_number: document.getElementById('staff-phone').value.trim(),
-        role: document.getElementById('staff-role').value,
-        password: document.getElementById('staff-password').value
+        full_name: document.getElementById('farmer-name').value,
+        phone_number: document.getElementById('farmer-phone').value,
+        id_number: document.getElementById('farmer-id').value,
+        route: document.getElementById('farmer-route').value
       };
 
-      btn.disabled = true;
-      btn.innerText = 'Registering User...';
-      status.classList.add('hidden');
-
       try {
-        const res = await fetch('/api/auth/register', {
+        const res = await fetch('/api/farmers', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -138,26 +168,26 @@
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to register user');
 
-        status.className = 'p-4 rounded-lg text-sm font-medium bg-emerald-950/80 text-emerald-200 border border-emerald-500/50';
-        status.innerText = `Success! ${payload.full_name} registered successfully as ${payload.role}.`;
-        status.classList.remove('hidden');
-        document.getElementById('admin-onboard-form').reset();
+        if (res.ok) {
+          alertBox.className = 'text-xs font-bold p-3 rounded-lg bg-emerald-900/50 border border-emerald-500 text-emerald-300 block';
+          const codeMsg = data.farmer && data.farmer.farmer_code ? ` (Assigned ID: ${data.farmer.farmer_code})` : '';
+          alertBox.textContent = `Farmer registered successfully!${codeMsg}`;
+          document.getElementById('farmer-form').reset();
+        } else {
+          alertBox.className = 'text-xs font-bold p-3 rounded-lg bg-red-900/50 border border-red-500 text-red-300 block';
+          alertBox.textContent = data.error || data.message || 'Failed to register farmer';
+        }
       } catch (err) {
-        status.className = 'p-4 rounded-lg text-sm font-medium bg-red-950/80 text-red-200 border border-red-500/50';
-        status.innerText = err.message || 'Server error during registration';
-        status.classList.remove('hidden');
-      } finally {
-        btn.disabled = false;
-        btn.innerText = 'Register User System-Wide';
+        alertBox.className = 'text-xs font-bold p-3 rounded-lg bg-red-900/50 border border-red-500 text-red-300 block';
+        alertBox.textContent = 'Server connection failed';
       }
     }
 
-    function logout() {
+    function handleLogout() {
       localStorage.removeItem('kinco_token');
       localStorage.removeItem('kinco_user');
-      window.location.href = '/';
+      window.location.href = '/index.html';
     }
   </script>
 </body>
