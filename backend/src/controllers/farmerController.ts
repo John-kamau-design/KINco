@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { supabase } from '../config/supabase';
 
 export const registerFarmer = async (req: Request, res: Response) => {
