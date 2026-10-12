@@ -3,150 +3,189 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KINco - Kinyona Dairy Legends</title>
+  <title>KINco - Kinyona Dairy Cooperative Management</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-amber-50 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-100 min-h-screen text-slate-800 antialiased font-sans flex flex-col items-center justify-start p-4 md:p-8">
 
-  <div class="w-full max-w-lg bg-white border-2 border-sky-400 rounded-lg shadow-xl overflow-hidden">
+  <!-- MAIN CONTAINER (Dynamically sized for auth vs dashboard) -->
+  <div id="main-card-container" class="w-full max-w-lg bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden transition-all duration-300">
     
-    <!-- HEADER -->
-    <div class="bg-sky-500 text-white text-center py-3 font-bold text-lg border-b-2 border-sky-600 flex justify-between items-center px-4">
-      <span>Kinyona Dairy Legends Company</span>
-      <button id="logout-nav-btn" onclick="handleLogout()" class="hidden text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded font-bold">Logout</button>
-    </div>
+    <!-- HEADER NAVBAR -->
+    <header class="bg-emerald-700 text-white py-3.5 px-6 flex justify-between items-center shadow-sm">
+      <div class="flex items-center space-x-2">
+        <span class="text-xl">🥛</span>
+        <h1 class="font-bold text-lg tracking-wide">KINco Dairy Portal</h1>
+      </div>
+      <button id="logout-nav-btn" onclick="handleLogout()" class="hidden text-xs bg-emerald-800 hover:bg-emerald-900 text-white font-medium px-3 py-1.5 rounded-lg border border-emerald-600 transition">
+        Sign Out
+      </button>
+    </header>
 
     <!-- VIEW 1: WELCOME SCREEN -->
-    <div id="welcome-view" class="p-6 text-center space-y-6">
-      <h2 class="text-xl font-semibold text-gray-700">Welcome!!</h2>
-      <div class="space-y-4">
-        <button onclick="showView('signin-view')" class="w-full bg-sky-400 hover:bg-sky-500 text-white font-bold py-3 rounded shadow border-b-4 border-sky-600">
+    <div id="welcome-view" class="p-8 text-center space-y-6">
+      <div class="space-y-2">
+        <h2 class="text-2xl font-bold text-slate-800">Welcome to KINco</h2>
+        <p class="text-xs text-slate-500">Kinyona Dairy Management System</p>
+      </div>
+      <div class="space-y-3 pt-2">
+        <button onclick="showView('signin-view')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg shadow-sm transition">
           SIGN IN
         </button>
-        <button onclick="showView('login-view')" class="w-full bg-sky-400 hover:bg-sky-500 text-white font-bold py-3 rounded shadow border-b-4 border-sky-600">
+        <button onclick="showView('login-view')" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 rounded-lg shadow-sm transition">
           LOG IN
         </button>
       </div>
     </div>
 
-    <!-- VIEW 2: SIGN IN (REGISTER USER/CLERK/ADMIN) -->
-    <div id="signin-view" class="p-6 hidden space-y-4">
-      <h2 class="text-lg font-semibold text-gray-700">Sign IN</h2>
-      <form id="signin-form" onsubmit="handleSignInCheck(event)" class="space-y-3">
+    <!-- VIEW 2: SIGN IN -->
+    <div id="signin-view" class="p-8 hidden space-y-5">
+      <h2 class="text-xl font-bold text-slate-800 border-b pb-2">Staff Portal Access</h2>
+      <form id="signin-form" onsubmit="handleSignInCheck(event)" class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-gray-600">Full Name</label>
-          <input type="text" id="signin-name" required class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Full Name</label>
+          <input type="text" id="signin-name" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-600">Password</label>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
           <div class="relative">
-            <input type="password" id="signin-password" required class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
-            <input type="checkbox" onclick="togglePassword('signin-password')" class="absolute right-2 top-2 cursor-pointer">
+            <input type="password" id="signin-password" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <input type="checkbox" onclick="togglePassword('signin-password')" class="absolute right-3 top-3 cursor-pointer text-emerald-600">
           </div>
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-600">Phone Number</label>
-          <input type="text" id="signin-phone" required class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Phone Number</label>
+          <input type="text" id="signin-phone" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-600">ID Number</label>
-          <input type="text" id="signin-id" required class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">National ID Number</label>
+          <input type="text" id="signin-id" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
         </div>
         
-        <p id="signin-error" class="text-red-500 text-xs hidden font-bold"></p>
+        <p id="signin-error" class="text-rose-600 text-xs hidden font-medium bg-rose-50 p-2.5 rounded-lg border border-rose-200"></p>
 
-        <div class="flex justify-between pt-4">
-          <button type="button" onclick="showView('welcome-view')" class="bg-red-400 text-white px-4 py-1.5 rounded font-bold">Back</button>
-          <button type="submit" class="bg-sky-500 text-white px-6 py-1.5 rounded font-bold">Submit</button>
+        <div class="flex justify-between pt-2">
+          <button type="button" onclick="showView('welcome-view')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg font-medium text-xs">Back</button>
+          <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-semibold text-xs shadow-sm">Submit</button>
         </div>
       </form>
     </div>
 
     <!-- VIEW 3: LOG IN -->
-    <div id="login-view" class="p-6 hidden space-y-4">
-      <h2 class="text-lg font-semibold text-gray-700">Log in:</h2>
-      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-3">
+    <div id="login-view" class="p-8 hidden space-y-5">
+      <h2 class="text-xl font-bold text-slate-800 border-b pb-2">Staff Authentication</h2>
+      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-gray-600">ID Number / Email</label>
-          <input type="text" id="login-id" required class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">National ID / Staff Code</label>
+          <input type="text" id="login-id" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-600">Password</label>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
           <div class="relative">
-            <input type="password" id="login-password" required class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
-            <input type="checkbox" onclick="togglePassword('login-password')" class="absolute right-2 top-2 cursor-pointer">
+            <input type="password" id="login-password" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <input type="checkbox" onclick="togglePassword('login-password')" class="absolute right-3 top-3 cursor-pointer text-emerald-600">
           </div>
         </div>
 
-        <p id="login-error" class="text-red-500 text-xs hidden font-bold"></p>
+        <p id="login-error" class="text-rose-600 text-xs hidden font-medium bg-rose-50 p-2.5 rounded-lg border border-rose-200"></p>
 
-        <div class="flex justify-between pt-4">
-          <button type="button" onclick="showView('welcome-view')" class="bg-red-400 text-white px-4 py-1.5 rounded font-bold">Back</button>
-          <button type="submit" class="bg-sky-500 text-white px-6 py-1.5 rounded font-bold">Submit</button>
+        <div class="flex justify-between pt-2">
+          <button type="button" onclick="showView('welcome-view')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg font-medium text-xs">Back</button>
+          <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-semibold text-xs shadow-sm">Sign In</button>
         </div>
       </form>
     </div>
 
-    <!-- VIEW 4: ADMIN / CLERK DASHBOARD (FARMER REGISTRATION) -->
-    <div id="dashboard-view" class="p-6 hidden space-y-4">
-      <div class="flex justify-between items-center border-b pb-2">
-        <h2 class="text-lg font-semibold text-gray-700">Admin / Clerk Dashboard</h2>
-        <span id="user-role-badge" class="text-xs bg-sky-100 text-sky-800 font-bold px-2 py-1 rounded"></span>
+    <!-- VIEW 4: ADMIN / CLERK PROFESSIONAL DASHBOARD -->
+    <div id="dashboard-view" class="p-6 md:p-8 hidden space-y-6">
+      
+      <!-- DASHBOARD BAR -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 p-4 rounded-xl border border-slate-200 gap-2">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800">Cooperative Management Console</h2>
+          <p class="text-xs text-slate-500">Manage daily milk operations and farmer registry</p>
+        </div>
+        <span id="user-role-badge" class="bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+          Admin
+        </span>
       </div>
 
-      <!-- Container for dynamic admin/clerk dashboards -->
+      <!-- ROLE SPECIFIC DYNAMIC CONTAINER -->
       <div id="role-dashboard-container"></div>
 
-      <!-- Farmer Registration Section -->
-      <div class="bg-sky-50 p-4 rounded-lg border border-sky-200">
-        <h3 class="font-bold text-sky-700 mb-3 text-sm">Register New Farmer</h3>
-        <form id="farmer-form" onsubmit="handleFarmerRegistration(event)" class="space-y-3">
-          <div>
-            <label class="block text-xs font-bold text-gray-600">Farmer Full Name</label>
-            <input type="text" id="farmer-name" required class="w-full border border-sky-300 rounded p-1 bg-white focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-gray-600">Phone Number</label>
-            <input type="text" id="farmer-phone" required class="w-full border border-sky-300 rounded p-1 bg-white focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-gray-600">National ID Number</label>
-            <input type="text" id="farmer-id" class="w-full border border-sky-300 rounded p-1 bg-white focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-gray-600">Collection Route</label>
-            <input type="text" id="farmer-route" class="w-full border border-sky-300 rounded p-1 bg-white focus:outline-none" placeholder="e.g. Route A">
+      <!-- FARMER REGISTRATION CARD -->
+      <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div class="border-b border-slate-100 pb-3 mb-5 flex items-center justify-between">
+          <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+            <span>👨‍🌾</span> Register New Farmer
+          </h3>
+          <span class="text-xs text-slate-400">KINco Cooperative Database</span>
+        </div>
+
+        <form id="farmer-form" onsubmit="handleFarmerRegistration(event)" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Farmer Full Name *</label>
+              <input type="text" id="farmer-name" required placeholder="e.g. Mary Wanjiku" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Phone Number *</label>
+              <input type="text" id="farmer-phone" required placeholder="e.g. 0712345678" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">National ID Number</label>
+              <input type="text" id="farmer-id" placeholder="Optional" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Collection Route / Zone</label>
+              <input type="text" id="farmer-route" placeholder="e.g. Kinyona Route A" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            </div>
           </div>
 
-          <p id="farmer-error" class="text-red-500 text-xs hidden font-bold"></p>
-          <p id="farmer-success" class="text-green-600 text-xs hidden font-bold"></p>
+          <p id="farmer-error" class="text-rose-600 text-xs hidden font-medium bg-rose-50 p-2.5 rounded-lg border border-rose-200"></p>
+          <p id="farmer-success" class="text-emerald-700 text-xs hidden font-medium bg-emerald-50 p-2.5 rounded-lg border border-emerald-200"></p>
 
-          <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded shadow">
-            Save Farmer Record
-          </button>
+          <div class="pt-2">
+            <button type="submit" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow-sm transition text-sm">
+              Save Farmer Record
+            </button>
+          </div>
         </form>
       </div>
+
     </div>
 
   </div>
 
-  <!-- Scripts -->
+  <!-- SCRIPTS -->
   <script src="js/auth.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/clerk.js"></script>
   <script src="js/driver.js"></script>
   <script>
-    // Helper view switcher matching your convention
+    // Responsive view switcher that expands the layout when logging into the dashboard
     function showView(viewId) {
+      const container = document.getElementById('main-card-container');
+      
       ['welcome-view', 'signin-view', 'login-view', 'dashboard-view'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
       });
+
       const target = document.getElementById(viewId);
       if (target) target.classList.remove('hidden');
+
+      // Expand card width when inside dashboard
+      if (viewId === 'dashboard-view') {
+        container.classList.remove('max-w-lg');
+        container.classList.add('max-w-4xl');
+      } else {
+        container.classList.remove('max-w-4xl');
+        container.classList.add('max-w-lg');
+      }
     }
 
-    // Farmer registration handler for Admin/Clerk
+    // Farmer registration handler
     async function handleFarmerRegistration(e) {
       e.preventDefault();
       const errorEl = document.getElementById('farmer-error');
@@ -154,7 +193,6 @@
       errorEl.classList.add('hidden');
       successEl.classList.add('hidden');
 
-      // Fallback check to catch both storage key variants
       const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
       const payload = {
         full_name: document.getElementById('farmer-name').value,
@@ -176,7 +214,7 @@
         const data = await res.json();
 
         if (res.ok) {
-          const codeMsg = data.farmer && data.farmer.farmer_code ? ` (Code: ${data.farmer.farmer_code})` : '';
+          const codeMsg = data.farmer && data.farmer.farmer_code ? ` (Assigned ID: ${data.farmer.farmer_code})` : '';
           successEl.textContent = `Farmer registered successfully!${codeMsg}`;
           successEl.classList.remove('hidden');
           document.getElementById('farmer-form').reset();
