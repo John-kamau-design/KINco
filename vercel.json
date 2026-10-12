@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/dist/backend/src/index.js"
+      "destination": "/api/index.ts"
     },
     {
       "source": "/api-health",
-      "destination": "/dist/backend/src/index.js"
+      "destination": "/api/index.ts"
     },
     {
       "source": "/(.*)",
