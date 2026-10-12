@@ -8,11 +8,12 @@
 </head>
 <body class="bg-amber-50 min-h-screen flex items-center justify-center p-4">
 
-  <div class="w-full max-w-md bg-white border-2 border-sky-400 rounded-lg shadow-xl overflow-hidden">
+  <div class="w-full max-w-lg bg-white border-2 border-sky-400 rounded-lg shadow-xl overflow-hidden">
     
     <!-- HEADER -->
-    <div class="bg-sky-500 text-white text-center py-3 font-bold text-lg border-b-2 border-sky-600">
-      Kinyona Dairy Legends Company
+    <div class="bg-sky-500 text-white text-center py-3 font-bold text-lg border-b-2 border-sky-600 flex justify-between items-center px-4">
+      <span>Kinyona Dairy Legends Company</span>
+      <button id="logout-nav-btn" onclick="handleLogout()" class="hidden text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded font-bold">Logout</button>
     </div>
 
     <!-- VIEW 1: WELCOME SCREEN -->
@@ -28,7 +29,7 @@
       </div>
     </div>
 
-    <!-- VIEW 2: SIGN IN (CHECK ID FIRST) -->
+    <!-- VIEW 2: SIGN IN (REGISTER USER/CLERK/ADMIN) -->
     <div id="signin-view" class="p-6 hidden space-y-4">
       <h2 class="text-lg font-semibold text-gray-700">Sign IN</h2>
       <form id="signin-form" onsubmit="handleSignInCheck(event)" class="space-y-3">
@@ -66,7 +67,7 @@
       <h2 class="text-lg font-semibold text-gray-700">Log in:</h2>
       <form id="login-form" onsubmit="handleLogin(event)" class="space-y-3">
         <div>
-          <label class="block text-xs font-bold text-gray-600">ID Number</label>
+          <label class="block text-xs font-bold text-gray-600">ID Number / Email</label>
           <input type="text" id="login-id" required class="w-full border-b-2 border-sky-400 p-1 focus:outline-none">
         </div>
         <div>
@@ -86,8 +87,102 @@
       </form>
     </div>
 
+    <!-- VIEW 4: ADMIN / CLERK DASHBOARD (FARMER REGISTRATION) -->
+    <div id="dashboard-view" class="p-6 hidden space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h2 class="text-lg font-semibold text-gray-700">Admin / Clerk Dashboard</h2>
+        <span id="user-role-badge" class="text-xs bg-sky-100 text-sky-800 font-bold px-2 py-1 rounded"></span>
+      </div>
+
+      <div class="bg-sky-50 p-4 rounded-lg border border-sky-200">
+        <h3 class="font-bold text-sky-700 mb-3 text-sm">Register New Farmer</h3>
+        <form id="farmer-form" onsubmit="handleFarmerRegistration(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-600">Farmer Full Name</label>
+            <input type="text" id="farmer-name" required class="w-full border border-sky-300 rounded p-1 bg-white focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600">Phone Number</label>
+            <input type="text" id="farmer-phone" required class="w-full border border-sky-300 rounded p-1 bg-white focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600">National ID Number</label>
+            <input type="text" id="farmer-id" class="w-full border border-sky-300 rounded p-1 bg-white focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600">Collection Route</label>
+            <input type="text" id="farmer-route" class="w-full border border-sky-300 rounded p-1 bg-white focus:outline-none" placeholder="e.g. Route A">
+          </div>
+
+          <p id="farmer-error" class="text-red-500 text-xs hidden font-bold"></p>
+          <p id="farmer-success" class="text-green-600 text-xs hidden font-bold"></p>
+
+          <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded shadow">
+            Save Farmer Record
+          </button>
+        </form>
+      </div>
+    </div>
+
   </div>
 
+  <!-- Scripts -->
   <script src="js/auth.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/clerk.js"></script>
+  <script src="js/driver.js"></script>
+  <script>
+    // Helper view switcher matching your convention
+    function showView(viewId) {
+      ['welcome-view', 'signin-view', 'login-view', 'dashboard-view'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+      const target = document.getElementById(viewId);
+      if (target) target.classList.remove('hidden');
+    }
+
+    // Farmer registration handler for Admin/Clerk
+    async function handleFarmerRegistration(e) {
+      e.preventDefault();
+      const errorEl = document.getElementById('farmer-error');
+      const successEl = document.getElementById('farmer-success');
+      errorEl.classList.add('hidden');
+      successEl.classList.add('hidden');
+
+      const token = localStorage.getItem('token');
+      const payload = {
+        full_name: document.getElementById('farmer-name').value,
+        phone_number: document.getElementById('farmer-phone').value,
+        id_number: document.getElementById('farmer-id').value,
+        route: document.getElementById('farmer-route').value
+      };
+
+      try {
+        const res = await fetch('/api/farmers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          successEl.textContent = 'Farmer registered successfully!';
+          successEl.classList.remove('hidden');
+          document.getElementById('farmer-form').reset();
+        } else {
+          errorEl.textContent = data.error || 'Failed to register farmer';
+          errorEl.classList.remove('hidden');
+        }
+      } catch (err) {
+        errorEl.textContent = 'Server connection failed';
+        errorEl.classList.remove('hidden');
+      }
+    }
+  </script>
 </body>
 </html>
