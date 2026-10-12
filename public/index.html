@@ -94,6 +94,10 @@
         <span id="user-role-badge" class="text-xs bg-sky-100 text-sky-800 font-bold px-2 py-1 rounded"></span>
       </div>
 
+      <!-- Container for dynamic admin/clerk dashboards -->
+      <div id="role-dashboard-container"></div>
+
+      <!-- Farmer Registration Section -->
       <div class="bg-sky-50 p-4 rounded-lg border border-sky-200">
         <h3 class="font-bold text-sky-700 mb-3 text-sm">Register New Farmer</h3>
         <form id="farmer-form" onsubmit="handleFarmerRegistration(event)" class="space-y-3">
@@ -150,7 +154,8 @@
       errorEl.classList.add('hidden');
       successEl.classList.add('hidden');
 
-      const token = localStorage.getItem('token');
+      // Fallback check to catch both storage key variants
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
       const payload = {
         full_name: document.getElementById('farmer-name').value,
         phone_number: document.getElementById('farmer-phone').value,
@@ -171,11 +176,12 @@
         const data = await res.json();
 
         if (res.ok) {
-          successEl.textContent = 'Farmer registered successfully!';
+          const codeMsg = data.farmer && data.farmer.farmer_code ? ` (Code: ${data.farmer.farmer_code})` : '';
+          successEl.textContent = `Farmer registered successfully!${codeMsg}`;
           successEl.classList.remove('hidden');
           document.getElementById('farmer-form').reset();
         } else {
-          errorEl.textContent = data.error || 'Failed to register farmer';
+          errorEl.textContent = data.error || data.message || 'Failed to register farmer';
           errorEl.classList.remove('hidden');
         }
       } catch (err) {
