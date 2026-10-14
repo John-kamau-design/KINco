@@ -240,7 +240,7 @@
                 <th class="py-3 px-4">Phone Number</th>
                 <th class="py-3 px-4">National ID</th>
                 <th class="py-3 px-4">Collection Route</th>
-                <th class="py-3 px-4">Membership Type</th>
+                <th class="py-3 px-4 whitespace-nowrap">Membership Type</th>
               </tr>
             </thead>
             <tbody id="farmers-table-body" class="divide-y divide-slate-700/50 text-sm text-slate-200">
@@ -323,22 +323,29 @@
       const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
 
       try {
-        const res = await fetch(`/api/collections/farmer/${code}`, {
+        let res = await fetch(`/api/collections/farmer/${code}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+
+        if (res.status === 404) {
+          res = await fetch(`/api/farmers/code/${code}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+        }
+
         const data = await res.json();
 
-        if (res.ok && data.farmer) {
+        if (res.ok && (data.farmer || data.full_name)) {
+          const farmerObj = data.farmer || data;
           badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 block';
-          badge.innerText = `Verified: ${data.farmer.full_name}`;
-          
-          // Auto-fill route if available
-          if (data.farmer.route && !document.getElementById('intake-route').value) {
-            document.getElementById('intake-route').value = data.farmer.route;
+          badge.innerText = `Verified: ${farmerObj.full_name}`;
+
+          if (farmerObj.route && !document.getElementById('intake-route').value) {
+            document.getElementById('intake-route').value = farmerObj.route;
           }
         } else {
           badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-md bg-red-950/80 text-red-300 border border-red-500/50 block';
-          badge.innerText = data.message || 'Farmer code not found';
+          badge.innerText = data.message || data.error || 'Farmer code not found in directory';
         }
       } catch (err) {
         badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-md bg-red-950/80 text-red-300 border border-red-500/50 block';
@@ -367,7 +374,7 @@
       }
     }
 
-    // Render farmers table with sequential row numbers
+    // Render farmers table with sequential row numbers and non-wrapping badges
     function renderFarmersTable(farmers) {
       const tbody = document.getElementById('farmers-table-body');
       if (!tbody) return;
@@ -392,8 +399,8 @@
             <td class="py-3.5 px-4 text-slate-300">${f.phone_number || ''}</td>
             <td class="py-3.5 px-4 text-slate-400">${f.id_number || 'N/A'}</td>
             <td class="py-3.5 px-4 text-slate-300">${f.route || 'Default Route'}</td>
-            <td class="py-3.5 px-4">
-              <span class="text-xs px-2.5 py-1 rounded-full font-bold ${badgeClass}">
+            <td class="py-3.5 px-4 whitespace-nowrap">
+              <span class="text-xs px-2.5 py-1 rounded-full font-bold inline-block whitespace-nowrap ${badgeClass}">
                 ${typeLabel}
               </span>
             </td>
