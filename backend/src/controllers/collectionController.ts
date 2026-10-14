@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 
-// Search/verify farmer by 'kid' identifier
+// Search/verify farmer by 'farmer_code' (KLF/AKLS) or 'kid'
 export const getFarmerByCode = async (req: Request, res: Response) => {
   try {
     const { code } = req.params;
@@ -9,14 +9,17 @@ export const getFarmerByCode = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Farmer ID code is required' });
     }
 
+    const cleanCode = code.trim().toUpperCase();
+
+    // Query both farmer_code and kid for compatibility
     const { data: farmer, error } = await supabase
       .from('farmers')
-      .select('id, kid, full_name')
-      .eq('kid', code.trim().toUpperCase())
+      .select('id, farmer_code, kid, full_name, route')
+      .or(`farmer_code.eq.${cleanCode},kid.eq.${cleanCode}`)
       .maybeSingle();
 
     if (error || !farmer) {
-      return res.status(404).json({ message: 'Farmer not found. Check farmer ID.' });
+      return res.status(404).json({ message: `Farmer ${cleanCode} not found in directory.` });
     }
 
     return res.status(200).json({ farmer });
@@ -25,48 +28,92 @@ export const getFarmerByCode = async (req: Request, res: Response) => {
   }
 };
 
-// Record a new milk collection
+// Record a new milk collection (Supports Clerk station & Driver App)
 export const recordCollection = async (req: Request, res: Response) => {
   try {
-    const { farmer_id, route_code, volume_liters, can_count } = req.body;
-    const driver_id = (req as any).user?.id || req.body.driver_id;
+    const { 
+      farmer_code, 
+      farmer_id, 
+      liters, 
+      volume_liters, 
+      route, 
+      route_code, 
+      can_count, 
+      notes, 
+      clerk_name 
+    } = req.body;
 
-    if (!farmer_id || !volume_liters || parseFloat(volume_liters) <= 0) {
-      return res.status(400).json({ message: 'Valid farmer ID and positive volume in liters are required' });
+    const driver_id = (req as any).user?.id || req.body.driver_id || null;
+    const intakeVolume = parseFloat(liters || volume_liters);
+
+    if (!intakeVolume || intakeVolume <= 0) {
+      return res.status(400).json({ message: 'Valid positive volume in liters is required' });
     }
 
+    let targetFarmerId = farmer_id;
+    let resolvedFarmerCode = farmer_code ? farmer_code.trim().toUpperCase() : null;
+    let farmerName = '';
+
+    // If farmer_code is provided (from Clerk form), look up the farmer record
+    if (resolvedFarmerCode && !targetFarmerId) {
+      const { data: farmer, error: farmerError } = await supabase
+        .from('farmers')
+        .select('id, farmer_code, full_name, route')
+        .or(`farmer_code.eq.${resolvedFarmerCode},kid.eq.${resolvedFarmerCode}`)
+        .maybeSingle();
+
+      if (farmerError || !farmer) {
+        return res.status(404).json({ message: `Farmer code ${resolvedFarmerCode} not found.` });
+      }
+
+      targetFarmerId = farmer.id;
+      resolvedFarmerCode = farmer.farmer_code || resolvedFarmerCode;
+      farmerName = farmer.full_name;
+    }
+
+    // Resolve optional route ID
     let route_id = null;
-    if (route_code) {
-      const { data: route } = await supabase
+    const activeRoute = route_code || route;
+    if (activeRoute) {
+      const { data: routeData } = await supabase
         .from('routes')
         .select('id')
-        .eq('route_code', route_code)
+        .eq('route_code', activeRoute)
         .maybeSingle();
-      if (route) route_id = route.id;
+      if (routeData) route_id = routeData.id;
     }
 
+    // Insert collection into DB
+    // Insert collection into DB
     const { data, error } = await supabase
       .from('collections')
       .insert([
         {
-          driver_id: driver_id || null,
-          farmer_id,
+          driver_id,
+          farmer_id: targetFarmerId,
+          farmer_code: resolvedFarmerCode,
           route_id,
-          volume_liters: parseFloat(volume_liters),
+          volume_liters: intakeVolume,
           can_count: can_count ? parseInt(can_count, 10) : 1,
+          notes: notes || null,
+          clerk_name: clerk_name || null,
           collected_at: new Date().toISOString()
         }
       ])
       .select(`
         id, volume_liters, can_count, collected_at,
-        farmers (kid, full_name)
+        farmers (farmer_code, full_name)
       `)
       .single();
 
     if (error) throw error;
 
+    const resolvedFarmerName = farmerName || 
+      (Array.isArray(data?.farmers) ? data.farmers[0]?.full_name : (data?.farmers as any)?.full_name) || '';
+
     return res.status(201).json({
-      message: 'Collection recorded successfully',
+      message: 'Milk intake logged successfully',
+      farmer_name: resolvedFarmerName,
       collection: data
     });
   } catch (error: any) {
@@ -75,8 +122,8 @@ export const recordCollection = async (req: Request, res: Response) => {
   }
 };
 
-// Fetch today's route summary for the driver
-export const getDriverDailySummary = async (req: Request, res: Response) => {
+// Fetch today's summary for driver / clerk overview
+export const getDriverDailySummary = async (_req: Request, res: Response) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -84,8 +131,8 @@ export const getDriverDailySummary = async (req: Request, res: Response) => {
     const { data: collections, error } = await supabase
       .from('collections')
       .select(`
-        id, volume_liters, can_count, collected_at,
-        farmers (kid, full_name)
+        id, volume_liters, can_count, collected_at, farmer_code, notes, clerk_name,
+        farmers (farmer_code, full_name)
       `)
       .gte('collected_at', today.toISOString())
       .order('collected_at', { ascending: false });

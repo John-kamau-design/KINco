@@ -58,6 +58,48 @@
         </div>
       </div>
 
+      <!-- MILK INTAKE LOGGING SECTION -->
+      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
+        <div class="border-b border-slate-700 pb-4">
+          <h2 class="text-xl font-bold text-emerald-400">Record Daily Milk Intake</h2>
+          <p class="text-sm text-slate-400">Log intake liters against farmer KLF / AKLS codes.</p>
+        </div>
+
+        <form id="clerk-intake-form" onsubmit="handleClerkMilkIntake(event)" class="space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Farmer Code (KLF / AKLS)</label>
+              <input type="text" id="intake-farmer-code" required placeholder="e.g. KLF0001 or AKLS0001" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm font-mono uppercase">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Liters Delivered</label>
+              <input type="number" step="0.1" min="0.1" id="intake-liters" required placeholder="e.g. 50.5" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Collection Route / Station Zone</label>
+              <input type="text" id="intake-route" placeholder="e.g. Kinyona Route A" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Remarks / Quality Notes</label>
+              <input type="text" id="intake-notes" placeholder="e.g. Morning offload - Grade A" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            </div>
+          </div>
+
+          <div id="intake-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
+
+          <button type="submit" id="intake-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
+            Log Milk Delivery
+          </button>
+        </form>
+      </section>
+
       <!-- Farmer Registration Section for Clerks -->
       <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
         <div class="border-b border-slate-700 pb-4 mb-6">
@@ -308,6 +350,60 @@
         (f.route && f.route.toLowerCase().includes(query))
       );
       renderFarmersTable(filtered);
+    }
+
+    // Handle Milk Intake Submission
+    async function handleClerkMilkIntake(e) {
+      e.preventDefault();
+      const btn = document.getElementById('intake-btn');
+      const status = document.getElementById('intake-status');
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+      const userStr = localStorage.getItem('kinco_user');
+      
+      let clerkName = 'Clerk';
+      try {
+        const user = JSON.parse(userStr);
+        if (user && user.full_name) clerkName = user.full_name;
+      } catch (err) {}
+
+      const payload = {
+        farmer_code: document.getElementById('intake-farmer-code').value.trim().toUpperCase(),
+        liters: document.getElementById('intake-liters').value.trim(),
+        route: document.getElementById('intake-route').value.trim(),
+        notes: document.getElementById('intake-notes').value.trim(),
+        clerk_name: clerkName
+      };
+
+      btn.disabled = true;
+      btn.innerText = 'Logging Delivery...';
+      status.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/collections/record', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.message || 'Failed to record milk intake');
+
+        status.className = 'p-4 rounded-lg text-sm font-medium bg-emerald-950/80 text-emerald-200 border border-emerald-500/50';
+        const farmerInfo = data.farmer_name ? ` for ${data.farmer_name}` : '';
+        status.innerText = `Recorded ${payload.liters} Liters (${payload.farmer_code})${farmerInfo} successfully!`;
+        status.classList.remove('hidden');
+        document.getElementById('clerk-intake-form').reset();
+      } catch (err) {
+        status.className = 'p-4 rounded-lg text-sm font-medium bg-red-950/80 text-red-200 border border-red-500/50';
+        status.innerText = err.message || 'Server error recording intake';
+        status.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Log Milk Delivery';
+      }
     }
 
     // Handle Farmer Registration from Clerk Station
