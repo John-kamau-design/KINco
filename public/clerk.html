@@ -22,125 +22,186 @@
     </div>
   </header>
 
-  <!-- Main Container -->
-  <main class="max-w-4xl mx-auto p-6 space-y-8">
+  <!-- NAVIGATION TABS -->
+  <div class="max-w-4xl mx-auto px-6 pt-6">
+    <div class="flex border-b border-slate-700 space-x-2">
+      <button id="tab-btn-overview" onclick="switchTab('overview')" 
+              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800">
+        Station Overview
+      </button>
+      <button id="tab-btn-farmers" onclick="switchTab('farmers')" 
+              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+        Farmers Directory
+      </button>
+    </div>
+  </div>
 
-    <!-- Station Overview Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
-        <p class="text-xs text-slate-400 font-medium uppercase">Station Status</p>
-        <p class="text-2xl font-bold text-emerald-400 mt-1">Active</p>
+  <!-- Main Container -->
+  <main class="max-w-4xl mx-auto p-6">
+
+    <!-- VIEW 1: STATION OVERVIEW & OPERATIONS -->
+    <div id="view-overview" class="space-y-8">
+
+      <!-- Station Overview Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
+          <p class="text-xs text-slate-400 font-medium uppercase">Station Status</p>
+          <p class="text-2xl font-bold text-emerald-400 mt-1">Active</p>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
+          <p class="text-xs text-slate-400 font-medium uppercase">Today's Intake Target</p>
+          <p class="text-2xl font-bold text-white mt-1">12,500 L</p>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
+          <p class="text-xs text-slate-400 font-medium uppercase">Quick Access</p>
+          <a href="/admin.html" class="inline-block text-sm text-emerald-400 hover:underline font-semibold mt-2">Go to Admin Portal &rarr;</a>
+        </div>
       </div>
-      <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
-        <p class="text-xs text-slate-400 font-medium uppercase">Today's Intake Target</p>
-        <p class="text-2xl font-bold text-white mt-1">12,500 L</p>
-      </div>
-      <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
-        <p class="text-xs text-slate-400 font-medium uppercase">Quick Access</p>
-        <a href="/admin.html" class="inline-block text-sm text-emerald-400 hover:underline font-semibold mt-2">Go to Admin Portal &rarr;</a>
-      </div>
+
+      <!-- Farmer Registration Section for Clerks -->
+      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+        <div class="border-b border-slate-700 pb-4 mb-6">
+          <h2 class="text-xl font-bold text-emerald-400">Register New Farmer</h2>
+          <p class="text-sm text-slate-400">Onboard new cooperative farmers directly at the intake station.</p>
+        </div>
+
+        <form id="clerk-farmer-form" onsubmit="handleClerkFarmerRegistration(event)" class="space-y-5">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Farmer Full Name</label>
+            <input type="text" id="clerk-farmer-name" required placeholder="e.g. Mary Wanjiku" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Phone Number</label>
+              <input type="tel" id="clerk-farmer-phone" required placeholder="e.g. 0712345678" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">National ID Number</label>
+              <input type="text" id="clerk-farmer-id" placeholder="e.g. 12345678" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Collection Route / Zone</label>
+            <input type="text" id="clerk-farmer-route" placeholder="e.g. Kinyona Route A" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          </div>
+
+          <div id="clerk-farmer-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
+          
+          <!-- SHAREHOLDER CHECKBOX -->
+          <div class="flex items-center space-x-3 pt-2">
+            <input type="checkbox" id="clerk-farmer-shareholder" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
+            <label for="clerk-farmer-shareholder" class="text-sm font-semibold text-emerald-400 cursor-pointer">
+              Farmer Shareholder (Generates AKLS prefix ID)
+            </label>
+          </div>
+          <button type="submit" id="clerk-farmer-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
+            Register Farmer at Station
+          </button>
+        </form>
+      </section>
+
+      <!-- Driver Onboarding Section for Clerks -->
+      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+        <div class="border-b border-slate-700 pb-4 mb-6">
+          <h2 class="text-xl font-bold text-emerald-400">Register Route Driver</h2>
+          <p class="text-sm text-slate-400">Onboard new collection drivers locally at the intake station.</p>
+        </div>
+
+        <form id="clerk-onboard-form" onsubmit="handleClerkOnboarding(event)" class="space-y-5">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Full Name</label>
+            <input type="text" id="clerk-staff-name" required placeholder="e.g. Samuel Kamau" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">National ID / Staff ID</label>
+              <input type="text" id="clerk-staff-national-id" required placeholder="e.g. 34567890 or DRV-102" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Phone Number</label>
+              <input type="tel" id="clerk-staff-phone" required placeholder="e.g. +254712345678" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Assigned System Role</label>
+              <select id="clerk-staff-role" class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+                <option value="DRIVER" selected>Driver / Collector</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Initial Password</label>
+              <input type="password" id="clerk-staff-password" required placeholder="••••••••" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            </div>
+          </div>
+
+          <div id="clerk-onboard-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
+
+          <button type="submit" id="clerk-onboard-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
+            Register Driver
+          </button>
+        </form>
+      </section>
+
     </div>
 
-    <!-- Farmer Registration Section for Clerks -->
-    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-      <div class="border-b border-slate-700 pb-4 mb-6">
-        <h2 class="text-xl font-bold text-emerald-400">Register New Farmer</h2>
-        <p class="text-sm text-slate-400">Onboard new cooperative farmers directly at the intake station.</p>
-      </div>
-
-      <form id="clerk-farmer-form" onsubmit="handleClerkFarmerRegistration(event)" class="space-y-5">
-        <div>
-          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Farmer Full Name</label>
-          <input type="text" id="clerk-farmer-name" required placeholder="e.g. Mary Wanjiku" 
-                 class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- VIEW 2: DEDICATED FARMERS DIRECTORY -->
+    <div id="view-farmers" class="hidden space-y-6">
+      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700 pb-4 gap-4">
           <div>
-            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Phone Number</label>
-            <input type="tel" id="clerk-farmer-phone" required placeholder="e.g. 0712345678" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            <h2 class="text-xl font-bold text-emerald-400">Cooperative Farmers Directory</h2>
+            <p class="text-xs text-slate-400 mt-1">Full database view of standard (KLF) and shareholder (AKLS) members.</p>
           </div>
-          <div>
-            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">National ID Number</label>
-            <input type="text" id="clerk-farmer-id" placeholder="e.g. 12345678" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          <div class="w-full md:w-80 flex items-center gap-2">
+            <input type="text" id="farmer-search-input" onkeyup="filterFarmersDirectory()" 
+                   placeholder="Search by KLF/AKLS code, name, route..." 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg px-4 py-2.5 text-slate-100 text-sm focus:outline-none transition placeholder-slate-500">
+            <button onclick="loadFarmersDirectory()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-3 py-2.5 rounded-lg transition font-semibold">
+              Refresh
+            </button>
           </div>
         </div>
 
-        <div>
-          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Collection Route / Zone</label>
-          <input type="text" id="clerk-farmer-route" placeholder="e.g. Kinyona Route A" 
-                 class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider bg-slate-900/50">
+                <th class="py-3 px-4">Farmer Code</th>
+                <th class="py-3 px-4">Full Name</th>
+                <th class="py-3 px-4">Phone Number</th>
+                <th class="py-3 px-4">National ID</th>
+                <th class="py-3 px-4">Collection Route</th>
+                <th class="py-3 px-4">Membership Type</th>
+              </tr>
+            </thead>
+            <tbody id="farmers-table-body" class="divide-y divide-slate-700/50 text-sm text-slate-200">
+              <tr>
+                <td colspan="6" class="py-8 text-center text-slate-500 font-medium">Select tab to load directory...</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-
-        <div id="clerk-farmer-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
-        
-        <!-- SHAREHOLDER CHECKBOX -->
-        <div class="flex items-center space-x-3 pt-2">
-          <input type="checkbox" id="clerk-farmer-shareholder" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
-          <label for="clerk-farmer-shareholder" class="text-sm font-semibold text-emerald-400 cursor-pointer">
-           Farmer Shareholder (Generates AKLS prefix ID)
-          </label>
-        </div>
-        <button type="submit" id="clerk-farmer-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
-          Register Farmer at Station
-        </button>
-      </form>
-    </section>
-
-    <!-- Driver Onboarding Section for Clerks -->
-    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-      <div class="border-b border-slate-700 pb-4 mb-6">
-        <h2 class="text-xl font-bold text-emerald-400">Register Route Driver</h2>
-        <p class="text-sm text-slate-400">Onboard new collection drivers locally at the intake station.</p>
-      </div>
-
-      <form id="clerk-onboard-form" onsubmit="handleClerkOnboarding(event)" class="space-y-5">
-        <div>
-          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Full Name</label>
-          <input type="text" id="clerk-staff-name" required placeholder="e.g. Samuel Kamau" 
-                 class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">National ID / Staff ID</label>
-            <input type="text" id="clerk-staff-national-id" required placeholder="e.g. 34567890 or DRV-102" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Phone Number</label>
-            <input type="tel" id="clerk-staff-phone" required placeholder="e.g. +254712345678" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Assigned System Role</label>
-            <select id="clerk-staff-role" class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
-              <option value="DRIVER" selected>Driver / Collector</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Initial Password</label>
-            <input type="password" id="clerk-staff-password" required placeholder="••••••••" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
-          </div>
-        </div>
-
-        <div id="clerk-onboard-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
-
-        <button type="submit" id="clerk-onboard-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
-          Register Driver
-        </button>
-      </form>
-    </section>
+      </section>
+    </div>
 
   </main>
 
   <script>
+    let allFarmersCache = [];
+
     // Verify session
     document.addEventListener('DOMContentLoaded', () => {
       const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
@@ -154,6 +215,98 @@
         document.getElementById('clerk-user-display').innerText = `${user.full_name || 'Clerk'} (${user.role})`;
       } catch (e) {}
     });
+
+    // Tab Navigation Switcher
+    function switchTab(tabName) {
+      const viewOverview = document.getElementById('view-overview');
+      const viewFarmers = document.getElementById('view-farmers');
+      const btnOverview = document.getElementById('tab-btn-overview');
+      const btnFarmers = document.getElementById('tab-btn-farmers');
+
+      if (tabName === 'farmers') {
+        viewOverview.classList.add('hidden');
+        viewFarmers.classList.remove('hidden');
+
+        btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
+        btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
+
+        loadFarmersDirectory();
+      } else {
+        viewFarmers.classList.add('hidden');
+        viewOverview.classList.remove('hidden');
+
+        btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
+        btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
+      }
+    }
+
+    // Fetch farmers directory
+    async function loadFarmersDirectory() {
+      const tbody = document.getElementById('farmers-table-body');
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+
+      tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 animate-pulse">Loading farmers directory...</td></tr>`;
+
+      try {
+        const res = await fetch('/api/farmers', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error('Failed to load farmers list');
+
+        allFarmersCache = await res.json();
+        renderFarmersTable(allFarmersCache);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-red-400 font-semibold">Error loading farmers directory. Please try again.</td></tr>`;
+      }
+    }
+
+    // Render farmers table
+    function renderFarmersTable(farmers) {
+      const tbody = document.getElementById('farmers-table-body');
+      if (!tbody) return;
+
+      if (!farmers || farmers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">No registered farmers found</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = farmers.map(f => {
+        const isShareholder = f.is_shareholder;
+        const badgeClass = isShareholder 
+          ? 'bg-amber-950/80 text-amber-300 border border-amber-600/50' 
+          : 'bg-slate-900 text-emerald-400 border border-slate-700';
+        const typeLabel = isShareholder ? 'Shareholder (AKLS)' : 'Standard (KLF)';
+
+        return `
+          <tr class="hover:bg-slate-700/30 transition">
+            <td class="py-3.5 px-4 font-mono font-bold text-emerald-400">${f.farmer_code || 'N/A'}</td>
+            <td class="py-3.5 px-4 font-semibold text-slate-100">${f.full_name || ''}</td>
+            <td class="py-3.5 px-4 text-slate-300">${f.phone_number || ''}</td>
+            <td class="py-3.5 px-4 text-slate-400">${f.id_number || 'N/A'}</td>
+            <td class="py-3.5 px-4 text-slate-300">${f.route || 'Default Route'}</td>
+            <td class="py-3.5 px-4">
+              <span class="text-xs px-2.5 py-1 rounded-full font-bold ${badgeClass}">
+                ${typeLabel}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Live search filter
+    function filterFarmersDirectory() {
+      const query = document.getElementById('farmer-search-input').value.toLowerCase();
+      const filtered = allFarmersCache.filter(f => 
+        (f.farmer_code && f.farmer_code.toLowerCase().includes(query)) ||
+        (f.full_name && f.full_name.toLowerCase().includes(query)) ||
+        (f.phone_number && f.phone_number.includes(query)) ||
+        (f.id_number && f.id_number.includes(query)) ||
+        (f.route && f.route.toLowerCase().includes(query))
+      );
+      renderFarmersTable(filtered);
+    }
 
     // Handle Farmer Registration from Clerk Station
     async function handleClerkFarmerRegistration(e) {
@@ -192,6 +345,9 @@
         status.innerText = `Farmer ${payload.full_name} registered successfully!${codeMsg}`;
         status.classList.remove('hidden');
         document.getElementById('clerk-farmer-form').reset();
+
+        // Refresh directory cache in background
+        loadFarmersDirectory();
       } catch (err) {
         status.className = 'p-4 rounded-lg text-sm font-medium bg-red-950/80 text-red-200 border border-red-500/50';
         status.innerText = err.message || 'Server error during farmer registration';
