@@ -22,12 +22,16 @@
     </div>
   </header>
 
-  <!-- NAVIGATION TABS -->
+  <!-- TOP NAVIGATION TABS -->
   <div class="max-w-4xl mx-auto px-6 pt-6">
     <div class="flex border-b border-slate-700 space-x-2">
       <button id="tab-btn-overview" onclick="switchTab('overview')" 
               class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800">
         Station Overview
+      </button>
+      <button id="tab-btn-intake" onclick="switchTab('intake')" 
+              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+        Milk Intake
       </button>
       <button id="tab-btn-farmers" onclick="switchTab('farmers')" 
               class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
@@ -39,7 +43,7 @@
   <!-- Main Container -->
   <main class="max-w-4xl mx-auto p-6">
 
-    <!-- VIEW 1: STATION OVERVIEW & OPERATIONS -->
+    <!-- VIEW 1: STATION OVERVIEW & ONBOARDING -->
     <div id="view-overview" class="space-y-8">
 
       <!-- Station Overview Cards -->
@@ -57,48 +61,6 @@
           <a href="/admin.html" class="inline-block text-sm text-emerald-400 hover:underline font-semibold mt-2">Go to Admin Portal &rarr;</a>
         </div>
       </div>
-
-      <!-- MILK INTAKE LOGGING SECTION -->
-      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
-        <div class="border-b border-slate-700 pb-4">
-          <h2 class="text-xl font-bold text-emerald-400">Record Daily Milk Intake</h2>
-          <p class="text-sm text-slate-400">Log intake liters against farmer KLF / AKLS codes.</p>
-        </div>
-
-        <form id="clerk-intake-form" onsubmit="handleClerkMilkIntake(event)" class="space-y-5">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Farmer Code (KLF / AKLS)</label>
-              <input type="text" id="intake-farmer-code" required placeholder="e.g. KLF0001 or AKLS0001" 
-                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm font-mono uppercase">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Liters Delivered</label>
-              <input type="number" step="0.1" min="0.1" id="intake-liters" required placeholder="e.g. 50.5" 
-                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Collection Route / Station Zone</label>
-              <input type="text" id="intake-route" placeholder="e.g. Kinyona Route A" 
-                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Remarks / Quality Notes</label>
-              <input type="text" id="intake-notes" placeholder="e.g. Morning offload - Grade A" 
-                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
-            </div>
-          </div>
-
-          <div id="intake-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
-
-          <button type="submit" id="intake-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
-            Log Milk Delivery
-          </button>
-        </form>
-      </section>
 
       <!-- Farmer Registration Section for Clerks -->
       <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
@@ -199,7 +161,58 @@
 
     </div>
 
-    <!-- VIEW 2: DEDICATED FARMERS DIRECTORY -->
+    <!-- VIEW 2: DEDICATED MILK INTAKE TAB -->
+    <div id="view-intake" class="hidden space-y-6">
+      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
+        <div class="border-b border-slate-700 pb-4">
+          <h2 class="text-xl font-bold text-emerald-400">Record Daily Milk Intake</h2>
+          <p class="text-sm text-slate-400">Log intake liters against verified farmer KLF / AKLS codes.</p>
+        </div>
+
+        <form id="clerk-intake-form" onsubmit="handleClerkMilkIntake(event)" class="space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Farmer Code (KLF / AKLS)</label>
+              <div class="flex gap-2">
+                <input type="text" id="intake-farmer-code" required placeholder="e.g. KLF0001 or AKLS0001" 
+                       class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm font-mono uppercase">
+                <button type="button" onclick="verifyFarmerCode()" id="verify-farmer-btn"
+                        class="bg-slate-700 hover:bg-slate-600 text-emerald-400 border border-slate-600 text-xs px-4 font-bold rounded-lg transition shrink-0">
+                  Verify
+                </button>
+              </div>
+              <div id="verify-badge" class="hidden mt-2 text-xs font-bold px-3 py-1.5 rounded-md"></div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Liters Delivered</label>
+              <input type="number" step="0.1" min="0.1" id="intake-liters" required placeholder="e.g. 50.5" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Collection Route / Zone</label>
+              <input type="text" id="intake-route" placeholder="e.g. Kinyona Route A" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Remarks / Quality Notes</label>
+              <input type="text" id="intake-notes" placeholder="e.g. Morning offload - Grade A" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+            </div>
+          </div>
+
+          <div id="intake-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
+
+          <button type="submit" id="intake-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
+            Log Milk Delivery
+          </button>
+        </form>
+      </section>
+    </div>
+
+    <!-- VIEW 3: DEDICATED FARMERS DIRECTORY TAB -->
     <div id="view-farmers" class="hidden space-y-6">
       <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700 pb-4 gap-4">
@@ -262,24 +275,74 @@
     // Tab Navigation Switcher
     function switchTab(tabName) {
       const viewOverview = document.getElementById('view-overview');
+      const viewIntake = document.getElementById('view-intake');
       const viewFarmers = document.getElementById('view-farmers');
+      
       const btnOverview = document.getElementById('tab-btn-overview');
+      const btnIntake = document.getElementById('tab-btn-intake');
       const btnFarmers = document.getElementById('tab-btn-farmers');
 
-      if (tabName === 'farmers') {
-        viewOverview.classList.add('hidden');
+      // Hide all views first
+      viewOverview.classList.add('hidden');
+      viewIntake.classList.add('hidden');
+      viewFarmers.classList.add('hidden');
+
+      // Reset button styles
+      btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
+      btnIntake.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
+      btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
+
+      if (tabName === 'intake') {
+        viewIntake.classList.remove('hidden');
+        btnIntake.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
+      } else if (tabName === 'farmers') {
         viewFarmers.classList.remove('hidden');
-
         btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
-        btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
-
         loadFarmersDirectory();
       } else {
-        viewFarmers.classList.add('hidden');
         viewOverview.classList.remove('hidden');
-
         btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
-        btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
+      }
+    }
+
+    // Verify Farmer Code inline before submit
+    async function verifyFarmerCode() {
+      const codeInput = document.getElementById('intake-farmer-code');
+      const badge = document.getElementById('verify-badge');
+      const code = codeInput.value.trim().toUpperCase();
+
+      if (!code) {
+        badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-md bg-amber-950/80 text-amber-300 border border-amber-600/50 block';
+        badge.innerText = 'Please enter a farmer code first.';
+        return;
+      }
+
+      badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-md bg-slate-800 text-slate-300 block animate-pulse';
+      badge.innerText = 'Verifying...';
+
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+
+      try {
+        const res = await fetch(`/api/collections/farmer/${code}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (res.ok && data.farmer) {
+          badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 block';
+          badge.innerText = `Verified: ${data.farmer.full_name}`;
+          
+          // Auto-fill route if available
+          if (data.farmer.route && !document.getElementById('intake-route').value) {
+            document.getElementById('intake-route').value = data.farmer.route;
+          }
+        } else {
+          badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-md bg-red-950/80 text-red-300 border border-red-500/50 block';
+          badge.innerText = data.message || 'Farmer code not found';
+        }
+      } catch (err) {
+        badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-md bg-red-950/80 text-red-300 border border-red-500/50 block';
+        badge.innerText = 'Error connecting to verification server';
       }
     }
 
@@ -389,13 +452,14 @@
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || data.message || 'Failed to record milk intake');
+        if (!res.ok) throw new Error(data.message || data.error || 'Failed to record milk intake');
 
         status.className = 'p-4 rounded-lg text-sm font-medium bg-emerald-950/80 text-emerald-200 border border-emerald-500/50';
         const farmerInfo = data.farmer_name ? ` for ${data.farmer_name}` : '';
         status.innerText = `Recorded ${payload.liters} Liters (${payload.farmer_code})${farmerInfo} successfully!`;
         status.classList.remove('hidden');
         document.getElementById('clerk-intake-form').reset();
+        document.getElementById('verify-badge').classList.add('hidden');
       } catch (err) {
         status.className = 'p-4 rounded-lg text-sm font-medium bg-red-950/80 text-red-200 border border-red-500/50';
         status.innerText = err.message || 'Server error recording intake';
