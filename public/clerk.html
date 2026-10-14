@@ -13,7 +13,7 @@
       <div class="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-xl shadow">K</div>
       <div>
         <h1 class="text-xl font-bold text-emerald-400 leading-tight">KINco Intake Station</h1>
-        <p class="text-xs text-slate-400">Clerk Offload & Driver Onboarding Portal</p>
+        <p class="text-xs text-slate-400">Clerk Offload & Onboarding Portal</p>
       </div>
     </div>
     <div class="flex items-center space-x-4">
@@ -37,9 +37,50 @@
       </div>
       <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
         <p class="text-xs text-slate-400 font-medium uppercase">Quick Access</p>
-        <a href="/admin.html" class="inline-block text-sm text-emerald-400 hover:underline font-semibold mt-2">Go to Admin Portal →</a>
+        <a href="/admin.html" class="inline-block text-sm text-emerald-400 hover:underline font-semibold mt-2">Go to Admin Portal &rarr;</a>
       </div>
     </div>
+
+    <!-- Farmer Registration Section for Clerks -->
+    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+      <div class="border-b border-slate-700 pb-4 mb-6">
+        <h2 class="text-xl font-bold text-emerald-400">Register New Farmer</h2>
+        <p class="text-sm text-slate-400">Onboard new cooperative farmers directly at the intake station.</p>
+      </div>
+
+      <form id="clerk-farmer-form" onsubmit="handleClerkFarmerRegistration(event)" class="space-y-5">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Farmer Full Name</label>
+          <input type="text" id="clerk-farmer-name" required placeholder="e.g. Mary Wanjiku" 
+                 class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Phone Number</label>
+            <input type="tel" id="clerk-farmer-phone" required placeholder="e.g. 0712345678" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">National ID Number</label>
+            <input type="text" id="clerk-farmer-id" placeholder="e.g. 12345678" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Collection Route / Zone</label>
+          <input type="text" id="clerk-farmer-route" placeholder="e.g. Kinyona Route A" 
+                 class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+        </div>
+
+        <div id="clerk-farmer-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
+
+        <button type="submit" id="clerk-farmer-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
+          Register Farmer at Station
+        </button>
+      </form>
+    </section>
 
     <!-- Driver Onboarding Section for Clerks -->
     <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
@@ -92,90 +133,10 @@
 
   </main>
 
-  <!-- FARMER REGISTRATION SECTION FOR CLERKS -->
-<section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6 mt-8">
-  <div class="border-b border-slate-700/60 pb-4">
-    <h2 class="text-2xl font-bold text-emerald-400">Register New Farmer</h2>
-    <p class="text-xs text-slate-400 mt-1">
-      Onboard new cooperative farmers directly at the intake station.
-    </p>
-  </div>
-
-  <form id="clerk-farmer-form" onsubmit="handleClerkFarmerRegistration(event)" class="space-y-5">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-      <div>
-        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">FARMER FULL NAME</label>
-        <input type="text" id="clerk-farmer-name" required placeholder="e.g. Mary Wanjiku" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">PHONE NUMBER</label>
-        <input type="text" id="clerk-farmer-phone" required placeholder="e.g. 0712345678" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">NATIONAL ID NUMBER</label>
-        <input type="text" id="clerk-farmer-id" placeholder="e.g. 12345678" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">COLLECTION ROUTE / ZONE</label>
-        <input type="text" id="clerk-farmer-route" placeholder="e.g. Kinyona Route A" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-      </div>
-    </div>
-
-    <div id="clerk-farmer-alert" class="hidden text-xs font-bold p-3 rounded-lg"></div>
-
-    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-extrabold py-3.5 rounded-lg transition text-sm shadow-lg">
-      Register Farmer at Station
-    </button>
-  </form>
-</section>
-
-<!-- SCRIPT LOGIC -->
-<script>
-  async function handleClerkFarmerRegistration(e) {
-    e.preventDefault();
-    const alertBox = document.getElementById('clerk-farmer-alert');
-    alertBox.classList.add('hidden');
-
-    const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
-    const payload = {
-      full_name: document.getElementById('clerk-farmer-name').value.trim(),
-      phone_number: document.getElementById('clerk-farmer-phone').value.trim(),
-      id_number: document.getElementById('clerk-farmer-id').value.trim(),
-      route: document.getElementById('clerk-farmer-route').value.trim()
-    };
-
-    try {
-      const res = await fetch('/api/farmers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        alertBox.className = 'text-xs font-bold p-3 rounded-lg bg-emerald-900/50 border border-emerald-500 text-emerald-300 block';
-        const codeMsg = data.farmer && data.farmer.farmer_code ? ` (Assigned ID: ${data.farmer.farmer_code})` : '';
-        alertBox.textContent = `Farmer registered successfully!${codeMsg}`;
-        document.getElementById('clerk-farmer-form').reset();
-      } else {
-        alertBox.className = 'text-xs font-bold p-3 rounded-lg bg-red-900/50 border border-red-500 text-red-300 block';
-        alertBox.textContent = data.error || data.message || 'Failed to register farmer';
-      }
-    } catch (err) {
-      alertBox.className = 'text-xs font-bold p-3 rounded-lg bg-red-900/50 border border-red-500 text-red-300 block';
-      alertBox.textContent = 'Server connection failed';
-    }
-  }
-</script>
-
   <script>
     // Verify session
     document.addEventListener('DOMContentLoaded', () => {
-      const token = localStorage.getItem('kinco_token');
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
       const userStr = localStorage.getItem('kinco_user');
       if (!token || !userStr) {
         window.location.href = '/';
@@ -187,11 +148,58 @@
       } catch (e) {}
     });
 
+    // Handle Farmer Registration from Clerk Station
+    async function handleClerkFarmerRegistration(e) {
+      e.preventDefault();
+      const btn = document.getElementById('clerk-farmer-btn');
+      const status = document.getElementById('clerk-farmer-status');
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+
+      const payload = {
+        full_name: document.getElementById('clerk-farmer-name').value.trim(),
+        phone_number: document.getElementById('clerk-farmer-phone').value.trim(),
+        id_number: document.getElementById('clerk-farmer-id').value.trim(),
+        route: document.getElementById('clerk-farmer-route').value.trim()
+      };
+
+      btn.disabled = true;
+      btn.innerText = 'Registering Farmer...';
+      status.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/farmers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.message || 'Failed to register farmer');
+
+        const codeMsg = data.farmer && data.farmer.farmer_code ? ` (Assigned ID: ${data.farmer.farmer_code})` : '';
+        status.className = 'p-4 rounded-lg text-sm font-medium bg-emerald-950/80 text-emerald-200 border border-emerald-500/50';
+        status.innerText = `Farmer ${payload.full_name} registered successfully!${codeMsg}`;
+        status.classList.remove('hidden');
+        document.getElementById('clerk-farmer-form').reset();
+      } catch (err) {
+        status.className = 'p-4 rounded-lg text-sm font-medium bg-red-950/80 text-red-200 border border-red-500/50';
+        status.innerText = err.message || 'Server error during farmer registration';
+        status.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Register Farmer at Station';
+      }
+    }
+
+    // Handle Driver Onboarding
     async function handleClerkOnboarding(e) {
       e.preventDefault();
       const btn = document.getElementById('clerk-onboard-btn');
       const status = document.getElementById('clerk-onboard-status');
-      const token = localStorage.getItem('kinco_token');
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
 
       const payload = {
         full_name: document.getElementById('clerk-staff-name').value.trim(),
@@ -235,6 +243,7 @@
     function logout() {
       localStorage.removeItem('kinco_token');
       localStorage.removeItem('kinco_user');
+      localStorage.removeItem('token');
       window.location.href = '/';
     }
   </script>
