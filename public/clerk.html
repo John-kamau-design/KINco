@@ -75,7 +75,19 @@
         </div>
 
         <div id="clerk-farmer-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
+        <!-- Inside #clerk-farmer-form in clerk.html -->
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Collection Route / Zone</label>
+          <input type="text" id="clerk-farmer-route" placeholder="e.g. Kinyona Route A" class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg p-3 text-white focus:outline-none transition text-sm">
+        </div>
 
+        <!-- SHAREHOLDER CHECKBOX -->
+        <div class="flex items-center space-x-3 pt-2">
+          <input type="checkbox" id="clerk-farmer-shareholder" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
+          <label for="clerk-farmer-shareholder" class="text-sm font-semibold text-emerald-400 cursor-pointer">
+           Farmer Shareholder (Generates AKLS prefix ID)
+          </label>
+        </div>
         <button type="submit" id="clerk-farmer-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
           Register Farmer at Station
         </button>
@@ -159,7 +171,8 @@
         full_name: document.getElementById('clerk-farmer-name').value.trim(),
         phone_number: document.getElementById('clerk-farmer-phone').value.trim(),
         id_number: document.getElementById('clerk-farmer-id').value.trim(),
-        route: document.getElementById('clerk-farmer-route').value.trim()
+        route: document.getElementById('clerk-farmer-route').value.trim(),
+        is_shareholder: document.getElementById('clerk-farmer-shareholder').checked
       };
 
       btn.disabled = true;

@@ -132,6 +132,19 @@
         </div>
 
         <div id="farmer-alert" class="hidden text-xs font-bold p-3 rounded-lg"></div>
+        <!-- Inside #farmer-form in admin.html -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">COLLECTION ROUTE / ZONE</label>
+          <input type="text" id="farmer-route" placeholder="e.g. Kinyona Route A" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <!-- SHAREHOLDER CHECKBOX -->
+        <div class="flex items-center space-x-3 pt-2">
+          <input type="checkbox" id="farmer-shareholder" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
+            <label for="farmer-shareholder" class="text-sm font-bold text-emerald-400 cursor-pointer">
+            Is Farmer a Shareholder? (Generates AKLS ID if checked, KLF if unchecked)
+            </label>
+        </div>
 
         <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-extrabold py-3.5 rounded-lg transition text-sm shadow-lg">
           Register Farmer
@@ -154,7 +167,8 @@
         full_name: document.getElementById('farmer-name').value,
         phone_number: document.getElementById('farmer-phone').value,
         id_number: document.getElementById('farmer-id').value,
-        route: document.getElementById('farmer-route').value
+        route: document.getElementById('farmer-route').value,
+        is_shareholder: document.getElementById('farmer-shareholder').checked
       };
 
       try {

@@ -11,21 +11,44 @@ const router = Router();
 // Register a new farmer (Admin / Clerk)
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { full_name, phone_number, route, id_number } = req.body;
+    const { full_name, phone_number, route, id_number, is_shareholder } = req.body;
 
     if (!full_name || !phone_number) {
       return res.status(400).json({ error: 'Full name and phone number are required' });
     }
 
-    // Insert record without farmer_code so Postgres assigns default sequence (KNC-0001, KNC-0002...)
+    const isShareholder = Boolean(is_shareholder);
+    const sequenceName = isShareholder ? 'akls_seq' : 'klf_seq';
+    const prefix = isShareholder ? 'AKLS' : 'KLF';
+
+    // 1. Fetch next numeric value from the respective sequence
+    const { data: seqData, error: seqError } = await supabase.rpc('nextval_seq', { seq_name: sequenceName });
+
+    let nextVal = 1;
+    if (seqError || !seqData) {
+      // Fallback SQL query if RPC isn't configured
+      const { data: rawSeq } = await supabase.rpc('exec_sql', { 
+        sql_query: `SELECT nextval('${sequenceName}') as val;` 
+      });
+      if (rawSeq && rawSeq[0]) nextVal = rawSeq[0].val;
+    } else {
+      nextVal = seqData;
+    }
+
+    // Format ID as KLF0001, KLF0002... or AKLS0001, AKLS0002...
+    const farmer_code = `${prefix}${nextVal.toString().padStart(4, '0')}`;
+
+    // 2. Insert record
     const { data, error } = await supabase
       .from('farmers')
       .insert([
         {
+          farmer_code,
           full_name,
           phone_number,
           route: route || 'Default Route',
           id_number: id_number || null,
+          is_shareholder: isShareholder,
           created_at: new Date().toISOString()
         }
       ])
