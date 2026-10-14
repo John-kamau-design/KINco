@@ -17,14 +17,11 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Full name and phone number are required' });
     }
 
-    // Auto-generate unique cooperative farmer code
-    const farmer_code = `KNC-${Math.floor(1000 + Math.random() * 9000)}`;
-
+    // Insert record without farmer_code so Postgres assigns default sequence (KNC-0001, KNC-0002...)
     const { data, error } = await supabase
       .from('farmers')
       .insert([
         {
-          farmer_code,
           full_name,
           phone_number,
           route: route || 'Default Route',
@@ -49,7 +46,10 @@ router.post('/', async (req: Request, res: Response) => {
 // Get all farmers list
 router.get('/', async (_req: Request, res: Response) => {
   try {
-    const { data, error } = await supabase.from('farmers').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('farmers')
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (error) {
       return res.status(400).json({ error: error.message });
