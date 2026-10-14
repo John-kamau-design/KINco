@@ -27,6 +27,7 @@ app.get('/api-health', (_req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/farmers', farmerRoutes);
 app.use('/api/milk', milkRoutes);
+app.use('/api/collections', collectionRoutes); // Added plural support for clerk intake & farmer lookup
 app.use('/api/collection', collectionRoutes);
 app.use('/api', apiRoutes);
 
