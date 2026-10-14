@@ -188,6 +188,7 @@
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="border-b border-slate-700/80 text-slate-400 text-xs uppercase tracking-wider bg-[#0B132B]/50">
+                <th class="py-3 px-4 w-12">#</th>
                 <th class="py-3 px-4">Farmer Code</th>
                 <th class="py-3 px-4">Full Name</th>
                 <th class="py-3 px-4">Phone Number</th>
@@ -198,7 +199,7 @@
             </thead>
             <tbody id="farmers-table-body" class="divide-y divide-slate-700/50 text-sm text-slate-200">
               <tr>
-                <td colspan="6" class="py-8 text-center text-slate-500 font-medium">Select tab to load directory...</td>
+                <td colspan="7" class="py-8 text-center text-slate-500 font-medium">Select tab to load directory...</td>
               </tr>
             </tbody>
           </table>
@@ -242,7 +243,7 @@
       const tbody = document.getElementById('farmers-table-body');
       const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
 
-      tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 animate-pulse">Loading farmers directory...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 animate-pulse">Loading farmers directory...</td></tr>`;
 
       try {
         const res = await fetch('/api/farmers', {
@@ -254,21 +255,21 @@
         allFarmersCache = await res.json();
         renderFarmersTable(allFarmersCache);
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-red-400 font-semibold">Error loading farmers directory. Please try again.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-red-400 font-semibold">Error loading farmers directory. Please try again.</td></tr>`;
       }
     }
 
-    // Render farmers table
+    // Render farmers table with sequential row numbers
     function renderFarmersTable(farmers) {
       const tbody = document.getElementById('farmers-table-body');
       if (!tbody) return;
 
       if (!farmers || farmers.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">No registered farmers found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No registered farmers found</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = farmers.map(f => {
+      tbody.innerHTML = farmers.map((f, index) => {
         const isShareholder = f.is_shareholder;
         const badgeClass = isShareholder 
           ? 'bg-amber-950/80 text-amber-300 border border-amber-600/50' 
@@ -277,6 +278,7 @@
 
         return `
           <tr class="hover:bg-slate-700/30 transition">
+            <td class="py-3.5 px-4 text-xs font-bold text-slate-400">${index + 1}</td>
             <td class="py-3.5 px-4 font-mono font-bold text-emerald-400">${f.farmer_code || 'N/A'}</td>
             <td class="py-3.5 px-4 font-semibold text-slate-100">${f.full_name || ''}</td>
             <td class="py-3.5 px-4 text-slate-300">${f.phone_number || ''}</td>
