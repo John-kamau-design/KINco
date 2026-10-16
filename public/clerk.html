@@ -8,6 +8,7 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen">
   <!-- Header Navigation -->
+ <!-- Header Navigation -->
   <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex flex-wrap justify-between items-center shadow-lg">
     <div class="flex items-center space-x-3">
       <div class="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-xl shadow">K</div>
@@ -16,7 +17,16 @@
         <p class="text-xs text-slate-400">Clerk Offload & Onboarding Portal</p>
       </div>
     </div>
-    <div class="flex items-center space-x-4">
+    <div class="flex items-center space-x-3">
+      <!-- Direct Reconciliation Navigation Button -->
+      <a href="/reconciliation.html" 
+         class="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-lg border border-emerald-400/40 shadow-md transition">
+        <svg class="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>Offload Reconciliation</span>
+      </a>
+
       <span id="clerk-user-display" class="text-sm font-medium bg-slate-700/60 px-3 py-1.5 rounded-full border border-slate-600">Clerk</span>
       <button onclick="logout()" class="bg-red-600/80 hover:bg-red-600 text-white font-semibold text-xs px-4 py-2 rounded-lg transition shadow">Sign Out</button>
     </div>
@@ -24,19 +34,24 @@
 
   <!-- TOP NAVIGATION TABS -->
   <div class="max-w-4xl mx-auto px-6 pt-6">
-    <div class="flex border-b border-slate-700 space-x-2">
+    <div class="flex border-b border-slate-700 space-x-2 overflow-x-auto">
       <button id="tab-btn-overview" onclick="switchTab('overview')" 
-              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800">
+              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800 whitespace-nowrap">
         Station Overview
       </button>
       <button id="tab-btn-intake" onclick="switchTab('intake')" 
-              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 whitespace-nowrap">
         Milk Intake
       </button>
       <button id="tab-btn-farmers" onclick="switchTab('farmers')" 
-              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 whitespace-nowrap">
         Farmers Directory
       </button>
+      <a href="/reconciliation.html" 
+         class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-emerald-400/90 hover:text-emerald-300 hover:bg-slate-800/40 flex items-center space-x-1.5 whitespace-nowrap">
+        <span>Route Reconciliation</span>
+        <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-1.5 py-0.5 rounded-full">New</span>
+      </a>
     </div>
   </div>
 
