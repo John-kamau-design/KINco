@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KINco - Route Offload Reconciliation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-12 font-sans antialiased">
+
+  <!-- TOP NAVBAR -->
+  <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex justify-between items-center sticky top-0 z-50 shadow-lg">
+    <div class="flex items-center space-x-2.5">
+      <div class="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center font-extrabold text-white text-lg shadow">K</div>
+      <div>
+        <h1 class="text-base font-bold text-emerald-400 leading-tight">Clerk Portal</h1>
+        <p class="text-[10px] text-slate-400">Route Offload Reconciliation</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-3">
+      <span id="clerk-user-display" class="text-xs font-semibold bg-slate-700/80 px-2.5 py-1 rounded-full border border-slate-600">Clerk</span>
+      <button onclick="logout()" class="bg-red-600/80 hover:bg-red-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition shadow">Exit</button>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto p-4 space-y-6">
+
+    <!-- RECONCILIATION INTAKE FORM -->
+    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-5">
+      <div class="border-b border-slate-700 pb-3 flex justify-between items-center">
+        <div>
+          <h2 class="text-lg font-bold text-emerald-400">Process Route Offload</h2>
+          <p class="text-xs text-slate-400">Compare driver field intake totals against measured station offload.</p>
+        </div>
+        <span class="text-xs font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full">Station Audit</span>
+      </div>
+
+      <form id="reconciliation-form" onsubmit="handleReconciliationSubmit(event)" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Route / Zone Code</label>
+            <input type="text" id="recon-route" required placeholder="e.g. Route A" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm uppercase">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Collection Date</label>
+            <input type="date" id="recon-date" required 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Station Measured Offload (Liters)</label>
+            <input type="number" step="0.25" min="0" id="recon-station-liters" required placeholder="0.00" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm font-bold text-emerald-400">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Station Notes / Audit Remarks (Optional)</label>
+          <input type="text" id="recon-notes" placeholder="e.g. Tanker seal verified intact, dipstick measured" 
+                 class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm">
+        </div>
+
+        <div id="recon-status" class="hidden p-3.5 rounded-xl text-xs font-bold"></div>
+
+        <button type="submit" id="recon-submit-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3.5 rounded-xl transition shadow-lg text-sm tracking-wide">
+          Reconcile Route Offload
+        </button>
+      </form>
+    </section>
+
+    <!-- RECONCILIATION HISTORY LOGS -->
+    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+        <div>
+          <h2 class="text-lg font-bold text-emerald-400">Reconciliation Audit Logs</h2>
+          <p class="text-xs text-slate-400">History of route offload checks and variance tracking.</p>
+        </div>
+        <button onclick="loadReconciliationHistory()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded-lg font-bold text-slate-200 transition">
+          Refresh Logs
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-700 text-slate-400 text-[11px] uppercase tracking-wider bg-slate-900/60">
+              <th class="py-2.5 px-3">Date</th>
+              <th class="py-2.5 px-3">Route</th>
+              <th class="py-2.5 px-3">Driver Liters</th>
+              <th class="py-2.5 px-3">Station Liters</th>
+              <th class="py-2.5 px-3">Variance</th>
+              <th class="py-2.5 px-3">Status</th>
+            </tr>
+          </thead>
+          <tbody id="recon-table-body" class="divide-y divide-slate-700/50 text-xs text-slate-200">
+            <tr>
+              <td colspan="6" class="py-6 text-center text-slate-500 font-medium">Loading reconciliation logs...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Validate session
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+      const userStr = localStorage.getItem('kinco_user');
+
+      if (!token || !userStr) {
+        window.location.href = '/';
+        return;
+      }
+
+      try {
+        const user = JSON.parse(userStr);
+        document.getElementById('clerk-user-display').innerText = `${user.full_name || 'Clerk'} (${user.role || 'CLERK'})`;
+      } catch (e) {}
+
+      // Default date picker to today YYYY-MM-DD
+      const todayStr = new Date().toISOString().split('T')[0];
+      document.getElementById('recon-date').value = todayStr;
+
+      loadReconciliationHistory();
+    });
+
+    async function handleReconciliationSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('recon-submit-btn');
+      const status = document.getElementById('recon-status');
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+
+      const payload = {
+        route_code: document.getElementById('recon-route').value.trim(),
+        collection_date: document.getElementById('recon-date').value,
+        station_liters: document.getElementById('recon-station-liters').value,
+        clerk_notes: document.getElementById('recon-notes').value.trim()
+      };
+
+      btn.disabled = true;
+      btn.innerText = 'Calculating Variance...';
+      status.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/reconciliation/process', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to process reconciliation');
+
+        const metrics = data.metrics || {};
+        const variance = metrics.variance_liters || 0;
+        const isFlagged = metrics.status === 'VARIANCE_FLAGGED';
+
+        status.className = isFlagged 
+          ? 'p-3.5 rounded-xl text-xs font-bold bg-amber-950/80 text-amber-200 border border-amber-500/50 block'
+          : 'p-3.5 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-200 border border-emerald-500/50 block';
+
+        status.innerHTML = `
+          <div>${data.message}</div>
+          <div class="mt-1 font-mono text-[11px] opacity-90">
+            Driver Field Total: ${metrics.total_driver_liters.toFixed(2)} L | 
+            Station Received: ${metrics.total_station_liters.toFixed(2)} L | 
+            Variance: ${variance > 0 ? '+' : ''}${variance.toFixed(2)} L
+          </div>
+        `;
+
+        document.getElementById('reconciliation-form').reset();
+        document.getElementById('recon-date').value = payload.collection_date;
+
+        loadReconciliationHistory();
+      } catch (err) {
+        status.className = 'p-3.5 rounded-xl text-xs font-bold bg-red-950/80 text-red-200 border border-red-500/50 block';
+        status.innerText = err.message || 'Error executing reconciliation';
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Reconcile Route Offload';
+      }
+    }
+
+    async function loadReconciliationHistory() {
+      const tbody = document.getElementById('recon-table-body');
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+
+      try {
+        const res = await fetch('/api/reconciliation/history', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error('Failed to load logs');
+
+        const data = await res.json();
+        const logs = data.reconciliations || [];
+
+        if (logs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500 font-medium">No reconciliation records found</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = logs.map(item => {
+          const driverLiters = Number(item.total_driver_liters || 0).toFixed(2);
+          const stationLiters = Number(item.total_station_liters || 0).toFixed(2);
+          const variance = Number(item.variance_liters || 0).toFixed(2);
+          const isFlagged = item.status === 'VARIANCE_FLAGGED';
+
+          const badge = isFlagged
+            ? `<span class="bg-amber-950 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-[10px] font-bold">FLAGGED</span>`
+            : `<span class="bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[10px] font-bold">MATCHED</span>`;
+
+          const varColor = Number(variance) < 0 ? 'text-red-400' : (Number(variance) > 0 ? 'text-amber-400' : 'text-emerald-400');
+
+          return `
+            <tr class="hover:bg-slate-700/30 transition">
+              <td class="py-2.5 px-3 text-slate-300 font-mono">${item.collection_date}</td>
+              <td class="py-2.5 px-3 font-bold text-slate-100">${item.route_code}</td>
+              <td class="py-2.5 px-3 font-semibold text-slate-300">${driverLiters} L</td>
+              <td class="py-2.5 px-3 font-bold text-emerald-400">${stationLiters} L</td>
+              <td class="py-2.5 px-3 font-extrabold ${varColor}">${variance > 0 ? '+' : ''}${variance} L</td>
+              <td class="py-2.5 px-3">${badge}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-red-400 font-bold">Error loading history logs</td></tr>`;
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('kinco_token');
+      localStorage.removeItem('kinco_user');
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>
