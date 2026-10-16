@@ -37,10 +37,11 @@
 
       <form id="reconciliation-form" onsubmit="handleReconciliationSubmit(event)" class="space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Input field in reconciliation.html -->
           <div>
-            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Route / Zone Code</label>
-            <input type="text" id="recon-route" required placeholder="e.g. Route A" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm uppercase">
+            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Driver ID / Staff Code</label>
+            <input type="text" id="recon-driver-id" required placeholder="e.g. DRV-001 or UUID" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm font-mono">
           </div>
           <div>
             <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Collection Date</label>
