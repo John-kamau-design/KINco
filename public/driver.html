@@ -3,206 +3,360 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KINco - Driver Collection Portal</title>
+  <title>KINco - Driver Route Collection Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen pb-12">
-  <!-- Header -->
-  <header class="bg-slate-800 border-b border-slate-700 px-4 py-4 flex justify-between items-center shadow-lg">
-    <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-xl shadow">K</div>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-12 font-sans antialiased">
+
+  <!-- TOP NAVBAR -->
+  <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex justify-between items-center sticky top-0 z-50 shadow-lg">
+    <div class="flex items-center space-x-2.5">
+      <div class="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center font-extrabold text-white text-lg shadow">K</div>
       <div>
-        <h1 class="text-lg font-bold text-emerald-400 leading-tight">KINco Driver Collection</h1>
-        <p class="text-xs text-slate-400">On-Route Milk Intake Entry</p>
+        <h1 class="text-base font-bold text-emerald-400 leading-tight">Driver Portal</h1>
+        <p class="text-[10px] text-slate-400">Route Intake & Daily Summary</p>
       </div>
     </div>
-    <button onclick="logout()" class="bg-red-600/80 hover:bg-red-600 text-white font-semibold text-xs px-3 py-2 rounded-lg transition">Sign Out</button>
+    <div class="flex items-center space-x-3">
+      <span id="driver-user-display" class="text-xs font-semibold bg-slate-700/80 px-2.5 py-1 rounded-full border border-slate-600">Driver</span>
+      <button onclick="logout()" class="bg-red-600/80 hover:bg-red-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition shadow">Exit</button>
+    </div>
   </header>
 
-  <main class="max-w-md mx-auto p-4 space-y-6">
+  <main class="max-w-3xl mx-auto p-4 space-y-6">
 
-    <!-- Route Stats Summary -->
-    <div class="grid grid-cols-2 gap-3">
-      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow">
-        <p class="text-xs text-slate-400 uppercase font-semibold">Today's Volume</p>
-        <p id="stat-liters" class="text-2xl font-bold text-emerald-400 mt-1">0.0 L</p>
+    <!-- METRICS SUMMARY CARDS -->
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md">
+        <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Today's Total Intake</p>
+        <p id="metric-today-liters" class="text-2xl font-black text-emerald-400 mt-1">0.0 <span class="text-xs font-normal text-slate-400">L</span></p>
       </div>
-      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow">
-        <p class="text-xs text-slate-400 uppercase font-semibold">Pickups Made</p>
-        <p id="stat-pickups" class="text-2xl font-bold text-white mt-1">0</p>
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md">
+        <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Total Pickups Today</p>
+        <p id="metric-today-pickups" class="text-2xl font-black text-white mt-1">0 <span class="text-xs font-normal text-slate-400">Farmers</span></p>
+      </div>
+      <div class="col-span-2 md:col-span-1 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md flex flex-col justify-center">
+        <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Assigned Route</p>
+        <p id="metric-active-route" class="text-base font-bold text-emerald-300 truncate mt-1">Kinyona Route A</p>
       </div>
     </div>
 
-    <!-- Collection Input Form -->
-    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-4">
-      <h2 class="text-base font-bold text-emerald-400 border-b border-slate-700 pb-2">Record Farmer Collection</h2>
-
-      <div>
-        <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Farmer Code (KID)</label>
-        <div class="flex gap-2">
-          <input type="text" id="farmer-code-input" placeholder="e.g. FARM-001" 
-                 class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500 uppercase text-sm">
-          <button type="button" onclick="searchFarmer()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 rounded-lg font-semibold text-xs border border-slate-600 transition">
-            Verify
-          </button>
-        </div>
-        <p id="farmer-info" class="text-xs mt-2 hidden font-semibold text-emerald-300 bg-emerald-950/60 p-2 rounded border border-emerald-500/30"></p>
+    <!-- RECORD FARMER INTAKE FORM (MOBILE-OPTIMIZED) -->
+    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-5">
+      <div class="border-b border-slate-700 pb-3">
+        <h2 class="text-lg font-bold text-emerald-400">Log Route Milk Intake</h2>
+        <p class="text-xs text-slate-400">Verify farmer ID code and record total liters delivered on route.</p>
       </div>
 
-      <form id="collection-form" onsubmit="submitCollection(event)" class="space-y-4">
-        <input type="hidden" id="selected-farmer-id">
+      <form id="driver-intake-form" onsubmit="handleDriverMilkIntake(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Farmer Code (KLF / AKLS / KID)</label>
+          <div class="flex gap-2">
+            <input type="text" id="driver-farmer-code" required placeholder="e.g. KLF0001 or AKLS0001" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm font-mono uppercase">
+            <button type="button" onclick="verifyFarmerCode()" id="verify-btn"
+                    class="bg-slate-700 hover:bg-slate-600 text-emerald-400 border border-slate-600 text-xs px-4 font-bold rounded-xl transition shrink-0">
+              Verify
+            </button>
+          </div>
+          <div id="verify-badge" class="hidden mt-2 text-xs font-bold px-3 py-1.5 rounded-lg"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Volume Intaken (Liters)</label>
+            <input type="number" step="0.1" min="0.1" id="driver-liters" required placeholder="e.g. 45.0" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm font-semibold">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Route / Zone Code</label>
+            <input type="text" id="driver-route" placeholder="e.g. Route A" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm">
+          </div>
+        </div>
 
         <div>
-          <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Volume (Liters)</label>
-          <input type="number" step="0.1" min="0.1" id="volume-input" required placeholder="0.0" 
-                 class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white text-lg font-bold focus:outline-none focus:border-emerald-500">
+          <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Quality / Intake Remarks (Optional)</label>
+          <input type="text" id="driver-notes" placeholder="e.g. Morning milk - Grade A" 
+                 class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm">
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Cans Count</label>
-            <input type="number" min="1" id="cans-input" value="1" required 
-                   class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Route</label>
-            <select id="route-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500 text-sm">
-              <option value="RT-CENTRAL">Central Route</option>
-              <option value="RT-NORTH">North Route</option>
-              <option value="RT-SOUTH">South Route</option>
-            </select>
-          </div>
-        </div>
+        <div id="driver-status" class="hidden p-3.5 rounded-xl text-xs font-bold"></div>
 
-        <div id="status-msg" class="hidden p-3 rounded-lg text-xs font-medium"></div>
-
-        <button type="submit" id="submit-btn" disabled class="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-lg transition shadow-lg">
-          Submit Collection
+        <button type="submit" id="submit-intake-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3.5 rounded-xl transition shadow-lg text-sm tracking-wide">
+          Submit Milk Record
         </button>
       </form>
     </section>
 
-    <!-- Recent Log -->
-    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl">
-      <h3 class="text-sm font-bold text-slate-200 mb-3">Today's Route Log</h3>
-      <div id="collections-list" class="space-y-2 text-xs text-slate-400">
-        <p>Loading summary...</p>
+    <!-- REAL-TIME SUMMARY & DATE FILTERABLE LOGS -->
+    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-5">
+      
+      <!-- HEADER & CONTROLS -->
+      <div class="space-y-4 border-b border-slate-700 pb-4">
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+          <div>
+            <h2 class="text-lg font-bold text-emerald-400">Milk Collection Summary Log</h2>
+            <p class="text-xs text-slate-400">Filter collections by farmer name, code, or intake date.</p>
+          </div>
+          <button onclick="loadDriverSummary()" class="self-start sm:self-auto bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded-lg font-bold text-slate-200 transition">
+            Refresh Logs
+          </button>
+        </div>
+
+        <!-- SEARCH AND DATE FILTER CONTROLS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Search Farmer / Code</label>
+            <input type="text" id="summary-search" onkeyup="applyLogFilters()" placeholder="Search by name or code..." 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Filter by Date</label>
+            <input type="date" id="summary-date-filter" onchange="applyLogFilters()" 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+          </div>
+        </div>
+
+        <!-- DATE SUMMARY METRIC BADGE -->
+        <div id="date-summary-banner" class="bg-slate-900 border border-slate-700 p-3 rounded-xl flex justify-between items-center">
+          <span class="text-xs text-slate-300 font-medium">Filtered Total Volume:</span>
+          <span id="filtered-total-liters" class="text-base font-extrabold text-emerald-400">0.0 Liters</span>
+        </div>
       </div>
+
+      <!-- COLLECTIONS TABLE -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-700 text-slate-400 text-[11px] uppercase tracking-wider bg-slate-900/60">
+              <th class="py-2.5 px-3">#</th>
+              <th class="py-2.5 px-3">Farmer Code</th>
+              <th class="py-2.5 px-3">Farmer Full Name</th>
+              <th class="py-2.5 px-3">Volume (L)</th>
+              <th class="py-2.5 px-3">Time / Date</th>
+              <th class="py-2.5 px-3">Notes</th>
+            </tr>
+          </thead>
+          <tbody id="summary-table-body" class="divide-y divide-slate-700/50 text-xs text-slate-200">
+            <tr>
+              <td colspan="6" class="py-6 text-center text-slate-500 font-medium">Loading collection logs...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
     </section>
 
   </main>
 
   <script>
+    let rawCollectionsCache = [];
+
     document.addEventListener('DOMContentLoaded', () => {
-      loadSummary();
-    });
+      // Validate driver session
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+      const userStr = localStorage.getItem('kinco_user');
 
-    async function searchFarmer() {
-      const code = document.getElementById('farmer-code-input').value.trim();
-      const infoEl = document.getElementById('farmer-info');
-      const submitBtn = document.getElementById('submit-btn');
-      const farmerIdInput = document.getElementById('selected-farmer-id');
-
-      if (!code) return;
+      if (!token || !userStr) {
+        window.location.href = '/';
+        return;
+      }
 
       try {
-        const res = await fetch(`/api/collection/farmer/${code}`);
-        const data = await res.json();
+        const user = JSON.parse(userStr);
+        document.getElementById('driver-user-display').innerText = `${user.full_name || 'Driver'} (${user.role || 'DRIVER'})`;
+      } catch (e) {}
 
-        if (!res.ok) {
-          infoEl.className = 'text-xs mt-2 p-2 rounded bg-red-950/60 text-red-300 border border-red-500/30';
-          infoEl.innerText = data.message || 'Farmer not found';
-          infoEl.classList.remove('hidden');
-          submitBtn.disabled = true;
-          farmerIdInput.value = '';
-          return;
+      // Default filter to today's date YYYY-MM-DD
+      const todayStr = new Date().toISOString().split('T')[0];
+      document.getElementById('summary-date-filter').value = todayStr;
+
+      loadDriverSummary();
+    });
+
+    // Verify Farmer ID Code
+    async function verifyFarmerCode() {
+      const codeInput = document.getElementById('driver-farmer-code');
+      const badge = document.getElementById('verify-badge');
+      const code = codeInput.value.trim().toUpperCase();
+
+      if (!code) {
+        badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-950/80 text-amber-300 border border-amber-600/50 block';
+        badge.innerText = 'Enter a farmer code to verify.';
+        return;
+      }
+
+      badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 block animate-pulse';
+      badge.innerText = 'Verifying...';
+
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+
+      try {
+        let res = await fetch(`/api/collections/farmer/${code}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.status === 404) {
+          res = await fetch(`/api/farmers/code/${code}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
         }
 
-        farmerIdInput.value = data.farmer.id;
-        infoEl.className = 'text-xs mt-2 p-2 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/30';
-        infoEl.innerText = `Verified: ${data.farmer.full_name || 'Farmer'} (${data.farmer.kid})`;
-        infoEl.classList.remove('hidden');
-        submitBtn.disabled = false;
+        const data = await res.json();
+
+        if (res.ok && (data.farmer || data.full_name)) {
+          const farmerObj = data.farmer || data;
+          badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 block';
+          badge.innerText = `Verified: ${farmerObj.full_name} (${farmerObj.farmer_code || code})`;
+
+          if (farmerObj.route && !document.getElementById('driver-route').value) {
+            document.getElementById('driver-route').value = farmerObj.route;
+          }
+        } else {
+          badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-red-950/80 text-red-300 border border-red-500/50 block';
+          badge.innerText = data.message || data.error || 'Farmer code not found';
+        }
       } catch (err) {
-        infoEl.className = 'text-xs mt-2 p-2 rounded bg-red-950/60 text-red-300 border border-red-500/30';
-        infoEl.innerText = 'Error connecting to server';
-        infoEl.classList.remove('hidden');
+        badge.className = 'mt-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-red-950/80 text-red-300 border border-red-500/50 block';
+        badge.innerText = 'Verification connection error';
       }
     }
 
-    async function submitCollection(e) {
+    // Submit Driver Milk Collection
+    async function handleDriverMilkIntake(e) {
       e.preventDefault();
-      const statusEl = document.getElementById('status-msg');
-      const btn = document.getElementById('submit-btn');
+      const btn = document.getElementById('submit-intake-btn');
+      const status = document.getElementById('driver-status');
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
 
       const payload = {
-        farmer_id: document.getElementById('selected-farmer-id').value,
-        volume_liters: document.getElementById('volume-input').value,
-        can_count: document.getElementById('cans-input').value,
-        route_code: document.getElementById('route-select').value
+        farmer_code: document.getElementById('driver-farmer-code').value.trim().toUpperCase(),
+        liters: document.getElementById('driver-liters').value.trim(),
+        route: document.getElementById('driver-route').value.trim(),
+        notes: document.getElementById('driver-notes').value.trim()
       };
 
       btn.disabled = true;
-      btn.innerText = 'Recording...';
+      btn.innerText = 'Logging Collection...';
+      status.classList.add('hidden');
 
       try {
-        const res = await fetch('/api/collection/record', {
+        const res = await fetch('/api/collections/record', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(payload)
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to record collection');
+        if (!res.ok) throw new Error(data.message || data.error || 'Failed to record intake');
 
-        statusEl.className = 'p-3 rounded-lg text-xs font-semibold bg-emerald-950 text-emerald-200 border border-emerald-500/40';
-        statusEl.innerText = `Recorded ${payload.volume_liters}L successfully!`;
-        statusEl.classList.remove('hidden');
+        status.className = 'p-3.5 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-200 border border-emerald-500/50 block';
+        const nameMsg = data.farmer_name ? ` for ${data.farmer_name}` : '';
+        status.innerText = `Recorded ${payload.liters} L (${payload.farmer_code})${nameMsg} successfully!`;
 
-        document.getElementById('collection-form').reset();
-        document.getElementById('farmer-info').classList.add('hidden');
-        btn.disabled = true;
+        document.getElementById('driver-intake-form').reset();
+        document.getElementById('verify-badge').classList.add('hidden');
 
-        loadSummary();
+        // Reload logs immediately
+        loadDriverSummary();
       } catch (err) {
-        statusEl.className = 'p-3 rounded-lg text-xs font-semibold bg-red-950 text-red-200 border border-red-500/40';
-        statusEl.innerText = err.message || 'Error recording collection';
-        statusEl.classList.remove('hidden');
+        status.className = 'p-3.5 rounded-xl text-xs font-bold bg-red-950/80 text-red-200 border border-red-500/50 block';
+        status.innerText = err.message || 'Error recording intake';
       } finally {
-        btn.innerText = 'Submit Collection';
+        btn.disabled = false;
+        btn.innerText = 'Submit Milk Record';
       }
     }
 
-    async function loadSummary() {
+    // Load All Collections for Summary Log
+    async function loadDriverSummary() {
+      const tbody = document.getElementById('summary-table-body');
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+
       try {
-        const res = await fetch('/api/collection/summary');
+        const res = await fetch('/api/collections/summary', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error('Failed to load collections summary');
+
         const data = await res.json();
+        rawCollectionsCache = data.recentCollections || data || [];
 
-        if (res.ok) {
-          document.getElementById('stat-liters').innerText = `${data.totalLiters.toFixed(1)} L`;
-          document.getElementById('stat-pickups').innerText = data.totalPickups;
-
-          const listEl = document.getElementById('collections-list');
-          if (data.recentCollections.length === 0) {
-            listEl.innerHTML = '<p class="text-slate-500 italic">No collections recorded today yet.</p>';
-          } else {
-            listEl.innerHTML = data.recentCollections.slice(0, 5).map(item => `
-              <div class="flex justify-between items-center bg-slate-900 p-2.5 rounded-lg border border-slate-700/60">
-                <div>
-                  <p class="font-bold text-slate-200">${item.farmers?.full_name || 'Farmer'} (${item.farmers?.kid || 'N/A'})</p>
-                  <p class="text-[10px] text-slate-400">${new Date(item.collected_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                </div>
-                <span class="font-mono text-sm font-bold text-emerald-400">${item.volume_liters} L</span>
-              </div>
-            `).join('');
-          }
+        // Update overall today metrics
+        if (data.totalLiters !== undefined) {
+          document.getElementById('metric-today-liters').innerHTML = `${data.totalLiters.toFixed(1)} <span class="text-xs font-normal text-slate-400">L</span>`;
+          document.getElementById('metric-today-pickups').innerHTML = `${data.totalPickups} <span class="text-xs font-normal text-slate-400">Farmers</span>`;
         }
-      } catch (e) {}
+
+        applyLogFilters();
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-red-400 font-bold">Error loading summary data</td></tr>`;
+      }
+    }
+
+    // Filter Logs by Search Query and Selected Date
+    function applyLogFilters() {
+      const searchQuery = document.getElementById('summary-search').value.toLowerCase().trim();
+      const selectedDate = document.getElementById('summary-date-filter').value; // YYYY-MM-DD
+
+      let filtered = rawCollectionsCache.filter(item => {
+        const farmerCode = (item.farmer_code || item.farmers?.farmer_code || item.farmers?.kid || '').toLowerCase();
+        const farmerName = (item.farmers?.full_name || item.farmer_name || '').toLowerCase();
+        
+        // Search match
+        const matchesSearch = !searchQuery || farmerCode.includes(searchQuery) || farmerName.includes(searchQuery);
+
+        // Date match (Compare YYYY-MM-DD)
+        const itemDateStr = item.collected_at ? item.collected_at.split('T')[0] : '';
+        const matchesDate = !selectedDate || itemDateStr === selectedDate;
+
+        return matchesSearch && matchesDate;
+      });
+
+      // Calculate total volume for filtered records
+      const totalFilteredVolume = filtered.reduce((acc, curr) => acc + Number(curr.volume_liters || curr.liters || 0), 0);
+      document.getElementById('filtered-total-liters').innerText = `${totalFilteredVolume.toFixed(1)} Liters`;
+
+      renderSummaryTable(filtered);
+    }
+
+    // Render Table Output
+    function renderSummaryTable(items) {
+      const tbody = document.getElementById('summary-table-body');
+
+      if (!items || items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500 font-medium">No matching intake logs found for selected filter</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = items.map((item, index) => {
+        const code = item.farmer_code || item.farmers?.farmer_code || item.farmers?.kid || 'N/A';
+        const name = item.farmers?.full_name || item.farmer_name || 'Standard Farmer';
+        const volume = Number(item.volume_liters || item.liters || 0).toFixed(1);
+        const timeFormatted = item.collected_at ? new Date(item.collected_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A';
+
+        return `
+          <tr class="hover:bg-slate-700/30 transition">
+            <td class="py-2.5 px-3 text-slate-400 font-bold">${index + 1}</td>
+            <td class="py-2.5 px-3 font-mono font-bold text-emerald-400">${code}</td>
+            <td class="py-2.5 px-3 font-semibold text-slate-100">${name}</td>
+            <td class="py-2.5 px-3 font-black text-emerald-300">${volume} L</td>
+            <td class="py-2.5 px-3 text-slate-400">${timeFormatted}</td>
+            <td class="py-2.5 px-3 text-slate-400 truncate max-w-[150px]">${item.notes || '—'}</td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function logout() {
       localStorage.removeItem('kinco_token');
       localStorage.removeItem('kinco_user');
+      localStorage.removeItem('token');
       window.location.href = '/';
     }
   </script>
