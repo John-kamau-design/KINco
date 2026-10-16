@@ -138,26 +138,40 @@ export const recordCollection = async (req: Request, res: Response) => {
   }
 };
 
-// Fetch daily summary and full collection logs for Driver Portal
+// Fetch daily summary and collection logs for Driver Portal (Scoped strictly to the authenticated driver)
 export const getDriverDailySummary = async (req: Request, res: Response) => {
   try {
+    const user = (req as any).user;
+    const driverId = user?.id || req.query.driver_id;
+
+    if (!driverId) {
+      return res.status(401).json({ message: 'Authentication required to access driver summary' });
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Fetch all collections with joined farmer details
-    const { data: collections, error } = await supabase
+    // 🔒 PRIVACY FIX: Filter collections strictly by driver_id
+    let query = supabase
       .from('collections')
       .select(`
-        id, volume_liters, collected_at, notes,
+        id, volume_liters, collected_at, notes, driver_id,
         farmers (id, farmer_code, kid, full_name, route)
       `)
       .order('collected_at', { ascending: false });
+
+    // Restrict strictly if role is DRIVER or if user is logged in
+    if (user?.role === 'DRIVER' || user?.role === 'driver' || driverId) {
+      query = query.eq('driver_id', driverId);
+    }
+
+    const { data: collections, error } = await query;
 
     if (error) throw error;
 
     const allCollections = collections || [];
 
-    // Filter collections recorded today
+    // Filter collections recorded today for this driver
     const todayCollections = allCollections.filter(item => {
       if (!item.collected_at) return false;
       const itemDate = new Date(item.collected_at);

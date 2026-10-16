@@ -134,7 +134,63 @@ export const checkSignIn = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Server error checking sign-in eligibility' });
   }
 };
+/**
+ * Retrieve active drivers for clerk offload dropdown selection
+ */
+export const getDrivers = async (req: Request, res: Response) => {
+  try {
+    // 1. Query users table for explicit DRIVER role
+    const { data: users, error: userError } = await supabase
+      .from('users')
+      .select('id, full_name, email, role')
+      .or('role.eq.DRIVER,role.eq.driver');
 
+    if (!userError && users && users.length > 0) {
+      return res.status(200).json({
+        success: true,
+        drivers: users,
+        users
+      });
+    }
+
+    // 2. Fallback: Extract unique driver_ids directly from collection entries
+    const { data: colData, error: colError } = await supabase
+      .from('collections')
+      .select('driver_id');
+
+    if (colError) throw colError;
+
+    const uniqueDriverIds = Array.from(new Set((colData || []).map(c => c.driver_id).filter(Boolean)));
+
+    if (uniqueDriverIds.length === 0) {
+      return res.status(200).json({ success: true, drivers: [], users: [] });
+    }
+
+    // Query names for matched IDs
+    const { data: matchedUsers } = await supabase
+      .from('users')
+      .select('id, full_name, email')
+      .in('id', uniqueDriverIds);
+
+    const drivers = uniqueDriverIds.map(id => {
+      const match = (matchedUsers || []).find(u => u.id === id);
+      return {
+        id,
+        full_name: match?.full_name || match?.email || `Driver (${id.substring(0, 8)}...)`
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      drivers,
+      users: drivers
+    });
+
+  } catch (error: any) {
+    console.error('Error fetching drivers:', error);
+    return res.status(500).json({ message: error.message || 'Error fetching active drivers list' });
+  }
+};
 // Aliases to ensure backward compatibility with backend/src/routes/auth.ts imports
 export const login = loginUser;
 export const signInCheck = checkSignIn;
