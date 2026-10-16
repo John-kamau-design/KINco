@@ -138,18 +138,61 @@ export const recordCollection = async (req: Request, res: Response) => {
   }
 };
 
-// Fetch daily summary and full collection logs for Driver Portal
+// Fetch general collections with strict role-based data isolation
+export const getCollections = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const role = (user?.role || '').toUpperCase();
+    const userId = user?.id || user?.user_id || user?.sub;
+
+    let query = supabase
+      .from('collections')
+      .select(`
+        id, volume_liters, can_count, collected_at, notes, driver_id,
+        farmers (farmer_code, full_name, kid)
+      `)
+      .order('collected_at', { ascending: false });
+
+    // 🔒 CRITICAL PRIVACY ENFORCEMENT: 
+    // If the user is a DRIVER, they must ONLY see their own collections. No exceptions.
+    if (role === 'DRIVER') {
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized: Driver ID not found in session token.' });
+      }
+      query = query.eq('driver_id', userId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return res.status(200).json({
+      success: true,
+      collections: data || []
+    });
+  } catch (error: any) {
+    console.error('Error fetching collections:', error);
+    return res.status(500).json({ message: error.message || 'Error fetching collection logs' });
+  }
+};
+
+// Fetch daily summary and full collection logs for Driver Portal (Strictly isolated)
 export const getDriverDailySummary = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
+    const role = (user?.role || '').toUpperCase();
+    const userId = user?.id || user?.user_id || user?.sub;
     const queryDriverId = req.query.driver_id as string;
-    const authUserId = user?.id;
 
-    // Determine the target driver ID:
-    // If a clerk/admin requests a specific driver via query, allow it; otherwise default to logged-in user
-    const targetDriverId = (user?.role === 'CLERK' || user?.role === 'ADMIN' || user?.role === 'admin') 
-      ? (queryDriverId || authUserId) 
-      : authUserId;
+    // Determine target driver: Drivers can only view themselves. Clerks/Admins can query specific drivers if provided.
+    let targetDriverId = userId;
+    if (role === 'CLERK' || role === 'ADMIN') {
+      if (queryDriverId) targetDriverId = queryDriverId;
+    }
+
+    if (!targetDriverId) {
+      return res.status(401).json({ message: 'Unauthorized: Driver authentication context missing.' });
+    }
 
     let query = supabase
       .from('collections')
@@ -157,14 +200,8 @@ export const getDriverDailySummary = async (req: Request, res: Response) => {
         id, volume_liters, can_count, collected_at, notes, driver_id,
         farmers (id, farmer_code, kid, full_name, route)
       `)
+      .eq('driver_id', targetDriverId)
       .order('collected_at', { ascending: false });
-
-    // If user is a driver, strictly scope to their own ID. If clerk/admin, allow viewing requested driver or all if none specified.
-    if (user?.role === 'DRIVER' || user?.role === 'driver' || (!user?.role && authUserId)) {
-      query = query.eq('driver_id', authUserId);
-    } else if (targetDriverId) {
-      query = query.eq('driver_id', targetDriverId);
-    }
 
     const { data: collections, error } = await query;
 
@@ -193,37 +230,5 @@ export const getDriverDailySummary = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error fetching driver summary:', error);
     return res.status(500).json({ message: error.message || 'Error fetching driver summary' });
-  }
-};
-
-export const getCollections = async (req: Request, res: Response) => {
-  try {
-    const user = (req as any).user;
-    const { role, id: userId } = user || {};
-
-    let query = supabase
-      .from('collections')
-      .select(`
-        id, volume_liters, can_count, collected_at, notes, driver_id,
-        farmers (farmer_code, full_name, kid)
-      `)
-      .order('collected_at', { ascending: false });
-
-    // Restrict strictly if role is driver
-    if ((role === 'DRIVER' || role === 'driver') && userId) {
-      query = query.eq('driver_id', userId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
-
-    return res.status(200).json({
-      success: true,
-      collections: data || []
-    });
-  } catch (error: any) {
-    console.error('Error fetching collections:', error);
-    return res.status(500).json({ message: error.message || 'Error fetching collection logs' });
   }
 };
