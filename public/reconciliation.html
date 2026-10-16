@@ -38,11 +38,14 @@
       <form id="reconciliation-form" onsubmit="handleReconciliationSubmit(event)" class="space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- Input field in reconciliation.html -->
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Driver ID / Staff Code</label>
-            <input type="text" id="recon-driver-id" required placeholder="e.g. DRV-001 or UUID" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm font-mono">
-          </div>
+          <!-- Replace the Driver ID input block in reconciliation.html with this -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Select Driver / Staff</label>
+            <select id="recon-driver-id" required 
+            class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm">
+            <option value="">-- Select Active Driver --</option>
+            </select>
+        </div>
           <div>
             <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Collection Date</label>
             <input type="date" id="recon-date" required 
@@ -105,171 +108,233 @@
   </main>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-  // Validate session
-  const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
-  const userStr = localStorage.getItem('kinco_user');
+  document.addEventListener('DOMContentLoaded', () => {
+    // Validate session
+    const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+    const userStr = localStorage.getItem('kinco_user');
 
-  if (!token || !userStr) {
-    window.location.href = '/';
-    return;
-  }
-
-  try {
-    const user = JSON.parse(userStr);
-    const userDisplay = document.getElementById('clerk-user-display');
-    if (userDisplay) {
-      userDisplay.innerText = `${user.full_name || 'Clerk'} (${user.role || 'CLERK'})`;
-    }
-  } catch (e) {}
-
-  // Set default date to today YYYY-MM-DD
-  const todayStr = new Date().toISOString().split('T')[0];
-  const dateInput = document.getElementById('recon-date');
-  if (dateInput) dateInput.value = todayStr;
-
-  loadReconciliationHistory();
-});
-
-async function handleReconciliationSubmit(e) {
-  e.preventDefault();
-  
-  const btn = document.getElementById('recon-submit-btn');
-  const status = document.getElementById('recon-status');
-  const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
-
-  // Safely extract input values with fallbacks
-  const driverIdInput = document.getElementById('recon-driver-id') || document.getElementById('recon-route');
-  const driver_id = driverIdInput ? driverIdInput.value.trim() : '';
-  const collection_date = document.getElementById('recon-date')?.value || new Date().toISOString().split('T')[0];
-  const station_liters = document.getElementById('recon-station-liters')?.value || '';
-  const clerk_notes = document.getElementById('recon-notes')?.value.trim() || '';
-
-  if (!driver_id || !station_liters) {
-    alert('Please enter both the Driver ID and Measured Station Liters.');
-    return;
-  }
-
-  const payload = {
-    driver_id,
-    collection_date,
-    station_liters,
-    clerk_notes
-  };
-
-  btn.disabled = true;
-  btn.innerText = 'Calculating Variance...';
-  if (status) status.classList.add('hidden');
-
-  try {
-    const res = await fetch('/api/reconciliation/process', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to process reconciliation');
-
-    const metrics = data.metrics || {};
-    const variance = metrics.variance_liters || 0;
-    const isFlagged = metrics.status === 'VARIANCE_FLAGGED';
-
-    if (status) {
-      status.className = isFlagged 
-        ? 'p-3.5 rounded-xl text-xs font-bold bg-amber-950/80 text-amber-200 border border-amber-500/50 block'
-        : 'p-3.5 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-200 border border-emerald-500/50 block';
-
-      status.innerHTML = `
-        <div>${data.message}</div>
-        <div class="mt-1 font-mono text-[11px] opacity-90">
-          Driver Field Total: ${Number(metrics.total_driver_liters || 0).toFixed(2)} L | 
-          Station Received: ${Number(metrics.total_station_liters || 0).toFixed(2)} L | 
-          Variance: ${variance > 0 ? '+' : ''}${Number(variance).toFixed(2)} L
-        </div>
-      `;
-      status.classList.remove('hidden');
-    }
-
-    document.getElementById('reconciliation-form')?.reset();
-    if (document.getElementById('recon-date')) {
-      document.getElementById('recon-date').value = collection_date;
-    }
-
-    loadReconciliationHistory();
-  } catch (err) {
-    console.error('Reconciliation error:', err);
-    if (status) {
-      status.className = 'p-3.5 rounded-xl text-xs font-bold bg-red-950/80 text-red-200 border border-red-500/50 block';
-      status.innerText = err.message || 'Error executing reconciliation';
-      status.classList.remove('hidden');
-    } else {
-      alert(err.message || 'Error executing reconciliation');
-    }
-  } finally {
-    btn.disabled = false;
-    btn.innerText = 'Reconcile Route Offload';
-  }
-}
-
-async function loadReconciliationHistory() {
-  const tbody = document.getElementById('recon-table-body');
-  if (!tbody) return;
-
-  const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
-
-  try {
-    const res = await fetch('/api/reconciliation/history', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    if (!res.ok) throw new Error('Failed to load logs');
-
-    const data = await res.json();
-    const logs = data.reconciliations || [];
-
-    if (logs.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500 font-medium">No reconciliation records found</td></tr>`;
+    if (!token || !userStr) {
+      window.location.href = '/';
       return;
     }
 
-    tbody.innerHTML = logs.map(item => {
-      const driverLiters = Number(item.total_driver_liters || 0).toFixed(2);
-      const stationLiters = Number(item.total_station_liters || 0).toFixed(2);
-      const variance = Number(item.variance_liters || 0).toFixed(2);
-      const isFlagged = item.status === 'VARIANCE_FLAGGED';
+    try {
+      const user = JSON.parse(userStr);
+      const userDisplay = document.getElementById('clerk-user-display');
+      if (userDisplay) {
+        userDisplay.innerText = `${user.full_name || 'Clerk'} (${user.role || 'CLERK'})`;
+      }
+    } catch (e) {}
 
-      const badge = isFlagged
-        ? `<span class="bg-amber-950 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-[10px] font-bold">FLAGGED</span>`
-        : `<span class="bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[10px] font-bold">MATCHED</span>`;
+    // Set default date to today YYYY-MM-DD
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById('recon-date');
+    if (dateInput) dateInput.value = todayStr;
 
-      const varColor = Number(variance) < 0 ? 'text-red-400' : (Number(variance) > 0 ? 'text-amber-400' : 'text-emerald-400');
+    // Load active driver choices and history logs
+    loadDriversDropdown();
+    loadReconciliationHistory();
+  });
 
-      return `
-        <tr class="hover:bg-slate-700/30 transition">
-          <td class="py-2.5 px-3 text-slate-300 font-mono">${item.collection_date}</td>
-          <td class="py-2.5 px-3 font-bold text-slate-100">${item.driver_id || item.route_code || 'N/A'}</td>
-          <td class="py-2.5 px-3 font-semibold text-slate-300">${driverLiters} L</td>
-          <td class="py-2.5 px-3 font-bold text-emerald-400">${stationLiters} L</td>
-          <td class="py-2.5 px-3 font-extrabold ${varColor}">${variance > 0 ? '+' : ''}${variance} L</td>
-          <td class="py-2.5 px-3">${badge}</td>
-        </tr>
-      `;
-    }).join('');
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-red-400 font-bold">Error loading history logs</td></tr>`;
+  /**
+   * Dynamically fetch and populate driver options for the clerk dropdown
+   */
+  async function loadDriversDropdown() {
+    const select = document.getElementById('recon-driver-id');
+    if (!select) return;
+
+    const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+
+    try {
+      const res = await fetch('/api/auth/users?role=DRIVER', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const data = await res.json();
+      const drivers = data.users || data.drivers || data.data || [];
+
+      if (drivers.length > 0) {
+        select.innerHTML = '<option value="">-- Select Active Driver --</option>' + 
+          drivers.map(d => `<option value="${d.id}">${d.full_name || d.email || d.id}</option>`).join('');
+      } else {
+        // Dynamic fallback query if collections endpoint contains drivers
+        const colRes = await fetch('/api/collections', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const colData = await colRes.json();
+        const collections = colData.collections || colData.data || [];
+        
+        const uniqueDrivers = [];
+        const seen = new Set();
+        
+        collections.forEach(c => {
+          if (c.driver_id && !seen.has(c.driver_id)) {
+            seen.add(c.driver_id);
+            uniqueDrivers.push({
+              id: c.driver_id,
+              name: c.driver_name || c.users?.full_name || `Driver ID: ${c.driver_id.substring(0, 8)}...`
+            });
+          }
+        });
+
+        if (uniqueDrivers.length > 0) {
+          select.innerHTML = '<option value="">-- Select Active Driver --</option>' + 
+            uniqueDrivers.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+        } else {
+          select.innerHTML = `<option value="">-- No Active Drivers Found --</option>`;
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching driver dropdown options:', e);
+      select.innerHTML = `<option value="">-- Error Loading Drivers --</option>`;
+    }
   }
-}
 
-function logout() {
-  localStorage.removeItem('kinco_token');
-  localStorage.removeItem('kinco_user');
-  localStorage.removeItem('token');
-  window.location.href = '/';
-}
-  </script>
+  async function handleReconciliationSubmit(e) {
+    e.preventDefault();
+    
+    const btn = document.getElementById('recon-submit-btn');
+    const status = document.getElementById('recon-status');
+    const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+
+    const driverSelect = document.getElementById('recon-driver-id');
+    const driver_id = driverSelect ? driverSelect.value.trim() : '';
+    const collection_date = document.getElementById('recon-date')?.value || new Date().toISOString().split('T')[0];
+    const station_liters = document.getElementById('recon-station-liters')?.value || '';
+    const clerk_notes = document.getElementById('recon-notes')?.value.trim() || '';
+
+    if (!driver_id) {
+      alert('Please select a driver from the list.');
+      return;
+    }
+
+    if (!station_liters) {
+      alert('Please enter Measured Station Liters.');
+      return;
+    }
+
+    const payload = {
+      driver_id,
+      collection_date,
+      station_liters,
+      clerk_notes
+    };
+
+    btn.disabled = true;
+    btn.innerText = 'Calculating Variance...';
+    if (status) status.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/reconciliation/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to process reconciliation');
+
+      const metrics = data.metrics || {};
+      const variance = metrics.variance_liters || 0;
+      const isFlagged = metrics.status === 'VARIANCE_FLAGGED';
+
+      if (status) {
+        status.className = isFlagged 
+          ? 'p-3.5 rounded-xl text-xs font-bold bg-amber-950/80 text-amber-200 border border-amber-500/50 block'
+          : 'p-3.5 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-200 border border-emerald-500/50 block';
+
+        status.innerHTML = `
+          <div>${data.message}</div>
+          <div class="mt-1 font-mono text-[11px] opacity-90">
+            Driver Field Total: ${Number(metrics.total_driver_liters || 0).toFixed(2)} L | 
+            Station Received: ${Number(metrics.total_station_liters || 0).toFixed(2)} L | 
+            Variance: ${variance > 0 ? '+' : ''}${Number(variance).toFixed(2)} L
+          </div>
+        `;
+        status.classList.remove('hidden');
+      }
+
+      document.getElementById('reconciliation-form')?.reset();
+      if (document.getElementById('recon-date')) {
+        document.getElementById('recon-date').value = collection_date;
+      }
+
+      loadReconciliationHistory();
+    } catch (err) {
+      console.error('Reconciliation error:', err);
+      if (status) {
+        status.className = 'p-3.5 rounded-xl text-xs font-bold bg-red-950/80 text-red-200 border border-red-500/50 block';
+        status.innerText = err.message || 'Error executing reconciliation';
+        status.classList.remove('hidden');
+      } else {
+        alert(err.message || 'Error executing reconciliation');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Reconcile Route Offload';
+    }
+  }
+
+  async function loadReconciliationHistory() {
+    const tbody = document.getElementById('recon-table-body');
+    if (!tbody) return;
+
+    const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+
+    try {
+      const res = await fetch('/api/reconciliation/history', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!res.ok) throw new Error('Failed to load logs');
+
+      const data = await res.json();
+      const logs = data.reconciliations || [];
+
+      if (logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500 font-medium">No reconciliation records found</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = logs.map(item => {
+        const driverLiters = Number(item.total_driver_liters || 0).toFixed(2);
+        const stationLiters = Number(item.total_station_liters || 0).toFixed(2);
+        const variance = Number(item.variance_liters || 0).toFixed(2);
+        const isFlagged = item.status === 'VARIANCE_FLAGGED';
+
+        const driverDisplay = item.users?.full_name || item.driver_id || item.route_code || 'N/A';
+
+        const badge = isFlagged
+          ? `<span class="bg-amber-950 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-[10px] font-bold">FLAGGED</span>`
+          : `<span class="bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[10px] font-bold">MATCHED</span>`;
+
+        const varColor = Number(variance) < 0 ? 'text-red-400' : (Number(variance) > 0 ? 'text-amber-400' : 'text-emerald-400');
+
+        return `
+          <tr class="hover:bg-slate-700/30 transition">
+            <td class="py-2.5 px-3 text-slate-300 font-mono">${item.collection_date}</td>
+            <td class="py-2.5 px-3 font-bold text-slate-100">${driverDisplay}</td>
+            <td class="py-2.5 px-3 font-semibold text-slate-300">${driverLiters} L</td>
+            <td class="py-2.5 px-3 font-bold text-emerald-400">${stationLiters} L</td>
+            <td class="py-2.5 px-3 font-extrabold ${varColor}">${variance > 0 ? '+' : ''}${variance} L</td>
+            <td class="py-2.5 px-3">${badge}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-red-400 font-bold">Error loading history logs</td></tr>`;
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('kinco_token');
+    localStorage.removeItem('kinco_user');
+    localStorage.removeItem('token');
+    window.location.href = '/';
+  }
+</script>
 </body>
 </html>

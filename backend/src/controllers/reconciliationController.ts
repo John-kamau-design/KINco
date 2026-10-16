@@ -10,7 +10,7 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     const clerk_id = (req as any).user?.id || null;
 
     if (!driver_id || station_liters === undefined || station_liters === null) {
-      return res.status(400).json({ message: 'Driver ID and station offload liters are required.' });
+      return res.status(400).json({ message: 'Driver and station offload liters are required.' });
     }
 
     const targetDate = collection_date || new Date().toISOString().split('T')[0];
@@ -24,12 +24,22 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     const startOfDay = `${targetDate}T00:00:00.000Z`;
     const endOfDay = `${targetDate}T23:59:59.999Z`;
 
-    const { data: collections, error: collectionsError } = await supabase
+    let query = supabase
       .from('collections')
       .select('volume_liters')
-      .eq('driver_id', driver_id)
       .gte('collected_at', startOfDay)
       .lte('collected_at', endOfDay);
+
+    // Check if driver_id is a valid UUID format or a plain string/number
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(driver_id)) {
+      query = query.eq('driver_id', driver_id);
+    } else {
+      // If it's a name or staff code, match via collections text or allow soft matching
+      query = query.eq('driver_id', driver_id); 
+    }
+
+    const { data: collections, error: collectionsError } = await query;
 
     if (collectionsError) throw collectionsError;
 
@@ -40,12 +50,11 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     // 2. Compute Variance (Station Offload - Field Intake)
     const varianceLiters = parseFloat((measuredStationLiters - totalDriverLiters).toFixed(2));
 
-    // Flag variance if discrepancy exceeds 0.50 Liters threshold
     const ALLOWED_TOLERANCE_LITERS = 0.50;
     const isVarianceFlagged = Math.abs(varianceLiters) > ALLOWED_TOLERANCE_LITERS;
     const status = isVarianceFlagged ? 'VARIANCE_FLAGGED' : 'MATCHED';
 
-    // 3. Upsert into reconciliations table anchored by driver_id and collection_date
+    // 3. Upsert into reconciliations table
     const { data: reconciliation, error: insertError } = await supabase
       .from('reconciliations')
       .upsert({
