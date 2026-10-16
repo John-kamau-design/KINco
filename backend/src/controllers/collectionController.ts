@@ -28,7 +28,6 @@ export const getFarmerByCode = async (req: Request, res: Response) => {
   }
 };
 
-// Record a new milk collection (Supports Clerk station & Driver App)
 export const recordCollection = async (req: Request, res: Response) => {
   try {
     const { 
@@ -83,37 +82,36 @@ export const recordCollection = async (req: Request, res: Response) => {
       if (routeData) route_id = routeData.id;
     }
 
-    // Construct schema-safe insert object (excluding farmer_code and conditionally clerk_name)
-    const insertPayload: Record<string, any> = {
+    // Build base guaranteed schema payload
+    const basePayload: Record<string, any> = {
       driver_id,
       farmer_id: targetFarmerId,
       route_id,
       volume_liters: intakeVolume,
       can_count: can_count ? parseInt(can_count, 10) : 1,
-      notes: notes || null,
       collected_at: new Date().toISOString()
     };
 
-    if (clerk_name) {
-      insertPayload.clerk_name = clerk_name;
-    }
+    // Add optional fields conditionally
+    const fullPayload = { ...basePayload };
+    if (notes) fullPayload.notes = notes;
+    if (clerk_name) fullPayload.clerk_name = clerk_name;
 
-    // Insert collection into DB
+    // Attempt insertion with optional fields
     let { data, error } = await supabase
       .from('collections')
-      .insert([insertPayload])
+      .insert([fullPayload])
       .select(`
         id, volume_liters, can_count, collected_at,
         farmers (farmer_code, full_name, kid)
       `)
       .single();
 
-    // Fallback if clerk_name column is missing in Supabase schema
-    if (error && error.message?.includes('clerk_name')) {
-      delete insertPayload.clerk_name;
+    // Safe fallback: If optional columns ('notes', 'clerk_name') are absent in Supabase schema, insert base payload only
+    if (error && (error.message?.includes('notes') || error.message?.includes('clerk_name') || error.message?.includes('column'))) {
       const retryResult = await supabase
         .from('collections')
-        .insert([insertPayload])
+        .insert([basePayload])
         .select(`
           id, volume_liters, can_count, collected_at,
           farmers (farmer_code, full_name, kid)
