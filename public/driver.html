@@ -305,14 +305,24 @@
       }
     }
 
-    // Submit Driver Milk Collection
+   // Submit Driver Milk Collection
     async function handleDriverMilkIntake(e) {
       e.preventDefault();
       const btn = document.getElementById('submit-intake-btn');
       const status = document.getElementById('driver-status');
       const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+      const userStr = localStorage.getItem('kinco_user');
+
+      let driverId = '';
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          driverId = user.id || user.user_id || user.sub || '';
+        } catch (e) {}
+      }
 
       const payload = {
+        driver_id: driverId, // 👈 Explicitly include driver UUID for robust backend association
         farmer_code: document.getElementById('driver-farmer-code').value.trim().toUpperCase(),
         liters: document.getElementById('driver-liters').value,
         route: document.getElementById('driver-route').value.trim(),

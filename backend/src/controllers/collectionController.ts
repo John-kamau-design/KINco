@@ -2,17 +2,17 @@ import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 
 // Helper to extract driver UUID from req.user safely
+// Helper to extract driver UUID safely from token or request body
 const getAuthenticatedUserId = (req: Request): string | null => {
   const reqUser = (req as any).user;
-  if (!reqUser) return null;
-
-  // Handle various JWT payload shapes
+  
   const possibleId = 
-    reqUser.id || 
-    reqUser.user_id || 
-    reqUser.sub || 
-    reqUser.user?.id || 
-    reqUser.user?.user_id;
+    reqUser?.id || 
+    reqUser?.user_id || 
+    reqUser?.sub || 
+    reqUser?.user?.id || 
+    req.body?.driver_id || 
+    req.query?.driver_id;
 
   return possibleId ? String(possibleId).trim() : null;
 };
