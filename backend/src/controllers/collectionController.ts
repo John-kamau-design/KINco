@@ -138,7 +138,7 @@ export const recordCollection = async (req: Request, res: Response) => {
   }
 };
 
-// Fetch daily summary and full history for Driver Portal
+// Fetch daily summary and full collection logs for Driver Portal
 export const getDriverDailySummary = async (req: Request, res: Response) => {
   try {
     const today = new Date();
@@ -148,26 +148,30 @@ export const getDriverDailySummary = async (req: Request, res: Response) => {
     const { data: collections, error } = await supabase
       .from('collections')
       .select(`
-        id, volume_liters, collected_at, notes, clerk_name, farmer_code,
+        id, volume_liters, collected_at, notes,
         farmers (id, farmer_code, kid, full_name, route)
       `)
       .order('collected_at', { ascending: false });
 
     if (error) throw error;
 
-    // Calculate metrics for today specifically
-    const todayCollections = collections ? collections.filter(item => {
+    const allCollections = collections || [];
+
+    // Filter collections recorded today
+    const todayCollections = allCollections.filter(item => {
+      if (!item.collected_at) return false;
       const itemDate = new Date(item.collected_at);
       return itemDate >= today;
-    }) : [];
+    });
 
     const totalLiters = todayCollections.reduce((acc, item) => acc + Number(item.volume_liters || 0), 0);
     const totalPickups = todayCollections.length;
 
     return res.status(200).json({
+      success: true,
       totalLiters,
       totalPickups,
-      recentCollections: collections || []
+      recentCollections: allCollections
     });
   } catch (error: any) {
     console.error('Error fetching driver summary:', error);
