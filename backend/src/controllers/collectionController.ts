@@ -1,6 +1,22 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 
+// Helper to extract driver UUID from req.user safely
+const getAuthenticatedUserId = (req: Request): string | null => {
+  const reqUser = (req as any).user;
+  if (!reqUser) return null;
+
+  // Handle various JWT payload shapes
+  const possibleId = 
+    reqUser.id || 
+    reqUser.user_id || 
+    reqUser.sub || 
+    reqUser.user?.id || 
+    reqUser.user?.user_id;
+
+  return possibleId ? String(possibleId).trim() : null;
+};
+
 // Search/verify farmer by 'farmer_code' (KLF/AKLS) or 'kid'
 export const getFarmerByCode = async (req: Request, res: Response) => {
   try {
@@ -11,7 +27,6 @@ export const getFarmerByCode = async (req: Request, res: Response) => {
 
     const cleanCode = code.trim().toUpperCase();
 
-    // Query both farmer_code and kid for compatibility
     const { data: farmer, error } = await supabase
       .from('farmers')
       .select('id, farmer_code, kid, full_name, route')
@@ -28,6 +43,7 @@ export const getFarmerByCode = async (req: Request, res: Response) => {
   }
 };
 
+// Record Milk Intake
 export const recordCollection = async (req: Request, res: Response) => {
   try {
     const { 
@@ -42,9 +58,14 @@ export const recordCollection = async (req: Request, res: Response) => {
       clerk_name 
     } = req.body;
 
-    const driver_id = (req as any).user?.id || req.body.driver_id || null;
-    const intakeVolume = parseFloat(liters || volume_liters);
+    // Guaranteed driver ID resolution
+    const driver_id = getAuthenticatedUserId(req) || req.body.driver_id || null;
 
+    if (!driver_id) {
+      return res.status(400).json({ message: 'Driver authentication required. Missing driver_id context.' });
+    }
+
+    const intakeVolume = parseFloat(liters || volume_liters);
     if (!intakeVolume || intakeVolume <= 0) {
       return res.status(400).json({ message: 'Valid positive volume in liters is required' });
     }
@@ -53,7 +74,6 @@ export const recordCollection = async (req: Request, res: Response) => {
     let resolvedFarmerCode = farmer_code ? farmer_code.trim().toUpperCase() : null;
     let farmerName = '';
 
-    // If farmer_code is provided, look up the farmer record to get farmer_id
     if (resolvedFarmerCode && !targetFarmerId) {
       const { data: farmer, error: farmerError } = await supabase
         .from('farmers')
@@ -70,7 +90,6 @@ export const recordCollection = async (req: Request, res: Response) => {
       farmerName = farmer.full_name;
     }
 
-    // Resolve optional route ID
     let route_id = null;
     const activeRoute = route_code || route;
     if (activeRoute) {
@@ -82,7 +101,6 @@ export const recordCollection = async (req: Request, res: Response) => {
       if (routeData) route_id = routeData.id;
     }
 
-    // Build base guaranteed schema payload
     const basePayload: Record<string, any> = {
       driver_id,
       farmer_id: targetFarmerId,
@@ -92,28 +110,25 @@ export const recordCollection = async (req: Request, res: Response) => {
       collected_at: new Date().toISOString()
     };
 
-    // Add optional fields conditionally
     const fullPayload = { ...basePayload };
     if (notes) fullPayload.notes = notes;
     if (clerk_name) fullPayload.clerk_name = clerk_name;
 
-    // Attempt insertion with optional fields
     let { data, error } = await supabase
       .from('collections')
       .insert([fullPayload])
       .select(`
-        id, volume_liters, can_count, collected_at,
+        id, volume_liters, can_count, collected_at, driver_id,
         farmers (farmer_code, full_name, kid)
       `)
       .single();
 
-    // Safe fallback: If optional columns ('notes', 'clerk_name') are absent in Supabase schema, insert base payload only
     if (error && (error.message?.includes('notes') || error.message?.includes('clerk_name') || error.message?.includes('column'))) {
       const retryResult = await supabase
         .from('collections')
         .insert([basePayload])
         .select(`
-          id, volume_liters, can_count, collected_at,
+          id, volume_liters, can_count, collected_at, driver_id,
           farmers (farmer_code, full_name, kid)
         `)
         .single();
@@ -138,12 +153,12 @@ export const recordCollection = async (req: Request, res: Response) => {
   }
 };
 
-// Fetch general collections with strict role-based data isolation
+// Fetch Collections (Strictly Isolate Drivers)
 export const getCollections = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const role = (user?.role || '').toUpperCase();
-    const userId = user?.id || user?.user_id || user?.sub;
+    const authUserId = getAuthenticatedUserId(req);
 
     let query = supabase
       .from('collections')
@@ -153,17 +168,15 @@ export const getCollections = async (req: Request, res: Response) => {
       `)
       .order('collected_at', { ascending: false });
 
-    // 🔒 CRITICAL PRIVACY ENFORCEMENT: 
-    // If the user is a DRIVER, they must ONLY see their own collections. No exceptions.
+    // Restrict strictly if role is DRIVER
     if (role === 'DRIVER') {
-      if (!userId) {
-        return res.status(401).json({ message: 'Unauthorized: Driver ID not found in session token.' });
+      if (!authUserId) {
+        return res.status(401).json({ message: 'Authentication context missing.' });
       }
-      query = query.eq('driver_id', userId);
+      query = query.eq('driver_id', authUserId);
     }
 
     const { data, error } = await query;
-
     if (error) throw error;
 
     return res.status(200).json({
@@ -176,25 +189,28 @@ export const getCollections = async (req: Request, res: Response) => {
   }
 };
 
-// Fetch daily summary and full collection logs for Driver Portal (Strictly isolated)
+// Fetch Driver Daily Summary (Strictly Isolate Driver Logs)
 export const getDriverDailySummary = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const role = (user?.role || '').toUpperCase();
-    const userId = user?.id || user?.user_id || user?.sub;
+    const authUserId = getAuthenticatedUserId(req);
     const queryDriverId = req.query.driver_id as string;
 
-    // Determine target driver: Drivers can only view themselves. Clerks/Admins can query specific drivers if provided.
-    let targetDriverId = userId;
-    if (role === 'CLERK' || role === 'ADMIN') {
-      if (queryDriverId) targetDriverId = queryDriverId;
+    // Fallback: If authUserId isn't extracted from token, fallback to query param or stored body context
+    let targetDriverId = authUserId;
+    if ((role === 'CLERK' || role === 'ADMIN') && queryDriverId) {
+      targetDriverId = queryDriverId;
+    } else if (!targetDriverId && queryDriverId) {
+      targetDriverId = queryDriverId;
     }
 
     if (!targetDriverId) {
-      return res.status(401).json({ message: 'Unauthorized: Driver authentication context missing.' });
+      console.error('DEBUG: No targetDriverId resolved from user:', user);
+      return res.status(400).json({ message: 'Driver ID context could not be identified.' });
     }
 
-    let query = supabase
+    const { data: collections, error } = await supabase
       .from('collections')
       .select(`
         id, volume_liters, can_count, collected_at, notes, driver_id,
@@ -202,8 +218,6 @@ export const getDriverDailySummary = async (req: Request, res: Response) => {
       `)
       .eq('driver_id', targetDriverId)
       .order('collected_at', { ascending: false });
-
-    const { data: collections, error } = await query;
 
     if (error) throw error;
 
@@ -223,6 +237,7 @@ export const getDriverDailySummary = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
+      driver_id: targetDriverId,
       totalLiters,
       totalPickups,
       recentCollections: allCollections
