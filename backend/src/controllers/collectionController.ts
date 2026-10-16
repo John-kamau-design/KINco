@@ -138,31 +138,32 @@ export const recordCollection = async (req: Request, res: Response) => {
   }
 };
 
-// Fetch daily summary and collection logs for Driver Portal (Scoped strictly to the authenticated driver)
+// Fetch daily summary and full collection logs for Driver Portal
 export const getDriverDailySummary = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const driverId = user?.id || req.query.driver_id;
+    const queryDriverId = req.query.driver_id as string;
+    const authUserId = user?.id;
 
-    if (!driverId) {
-      return res.status(401).json({ message: 'Authentication required to access driver summary' });
-    }
+    // Determine the target driver ID:
+    // If a clerk/admin requests a specific driver via query, allow it; otherwise default to logged-in user
+    const targetDriverId = (user?.role === 'CLERK' || user?.role === 'ADMIN' || user?.role === 'admin') 
+      ? (queryDriverId || authUserId) 
+      : authUserId;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // 🔒 PRIVACY FIX: Filter collections strictly by driver_id
     let query = supabase
       .from('collections')
       .select(`
-        id, volume_liters, collected_at, notes, driver_id,
+        id, volume_liters, can_count, collected_at, notes, driver_id,
         farmers (id, farmer_code, kid, full_name, route)
       `)
       .order('collected_at', { ascending: false });
 
-    // Restrict strictly if role is DRIVER or if user is logged in
-    if (user?.role === 'DRIVER' || user?.role === 'driver' || driverId) {
-      query = query.eq('driver_id', driverId);
+    // If user is a driver, strictly scope to their own ID. If clerk/admin, allow viewing requested driver or all if none specified.
+    if (user?.role === 'DRIVER' || user?.role === 'driver' || (!user?.role && authUserId)) {
+      query = query.eq('driver_id', authUserId);
+    } else if (targetDriverId) {
+      query = query.eq('driver_id', targetDriverId);
     }
 
     const { data: collections, error } = await query;
@@ -171,7 +172,9 @@ export const getDriverDailySummary = async (req: Request, res: Response) => {
 
     const allCollections = collections || [];
 
-    // Filter collections recorded today for this driver
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const todayCollections = allCollections.filter(item => {
       if (!item.collected_at) return false;
       const itemDate = new Date(item.collected_at);
@@ -190,5 +193,37 @@ export const getDriverDailySummary = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error fetching driver summary:', error);
     return res.status(500).json({ message: error.message || 'Error fetching driver summary' });
+  }
+};
+
+export const getCollections = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { role, id: userId } = user || {};
+
+    let query = supabase
+      .from('collections')
+      .select(`
+        id, volume_liters, can_count, collected_at, notes, driver_id,
+        farmers (farmer_code, full_name, kid)
+      `)
+      .order('collected_at', { ascending: false });
+
+    // Restrict strictly if role is driver
+    if ((role === 'DRIVER' || role === 'driver') && userId) {
+      query = query.eq('driver_id', userId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return res.status(200).json({
+      success: true,
+      collections: data || []
+    });
+  } catch (error: any) {
+    console.error('Error fetching collections:', error);
+    return res.status(500).json({ message: error.message || 'Error fetching collection logs' });
   }
 };
