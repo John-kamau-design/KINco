@@ -354,32 +354,63 @@
       }
     }
 
-    // Load All Collections for Summary Log
-    async function loadDriverSummary() {
-      const tbody = document.getElementById('summary-table-body');
-      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+   // Load All Collections for Summary Log (Scoped to logged-in Driver)
+async function loadDriverSummary() {
+  const tbody = document.getElementById('summary-table-body');
+  const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+  const userStr = localStorage.getItem('kinco_user');
+  
+  let driverId = '';
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      driverId = user.id || user.user_id || user.sub || '';
+    } catch (e) {}
+  }
 
-      try {
-        const res = await fetch('/api/collections/summary', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+  try {
+    // Call driver summary endpoint with explicit driver_id query string fallback
+    const res = await fetch(`/api/collections/driver-summary?driver_id=${encodeURIComponent(driverId)}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
 
-        if (!res.ok) throw new Error('Failed to load collections summary');
+    if (!res.ok) {
+      // Fallback try to /api/collections/summary if route alias is configured
+      const retryRes = await fetch(`/api/collections/summary?driver_id=${encodeURIComponent(driverId)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!retryRes.ok) throw new Error('Failed to load collections summary');
+      var data = await retryRes.json();
+    } else {
+      var data = await res.json();
+    }
 
-        const data = await res.json();
-        rawCollectionsCache = data.recentCollections || data || [];
+    rawCollectionsCache = data.recentCollections || data.collections || [];
 
-        // Update overall today metrics
-        if (data.totalLiters !== undefined) {
-          document.getElementById('metric-today-liters').innerHTML = `${data.totalLiters.toFixed(1)} <span class="text-xs font-normal text-slate-400">L</span>`;
-          document.getElementById('metric-today-pickups').innerHTML = `${data.totalPickups} <span class="text-xs font-normal text-slate-400">Farmers</span>`;
-        }
+    // Update overall today metrics
+    if (data.totalLiters !== undefined) {
+      const totalLiters = Number(data.totalLiters || 0);
+      const totalPickups = Number(data.totalPickups || 0);
 
-        applyLogFilters();
-      } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-red-400 font-bold">Error loading summary data</td></tr>`;
+      const litersElem = document.getElementById('metric-today-liters');
+      const pickupsElem = document.getElementById('metric-today-pickups');
+
+      if (litersElem) {
+        litersElem.innerHTML = `${totalLiters.toFixed(1)} <span class="text-xs font-normal text-slate-400">L</span>`;
+      }
+      if (pickupsElem) {
+        pickupsElem.innerHTML = `${totalPickups} <span class="text-xs font-normal text-slate-400">Farmers</span>`;
       }
     }
+
+    applyLogFilters();
+  } catch (err) {
+    console.error('Driver summary load error:', err);
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-red-400 font-bold">Error loading summary data</td></tr>`;
+    }
+  }
+}
 
     // Filter Logs by Search Query and Selected Date
     function applyLogFilters() {
