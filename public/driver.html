@@ -23,6 +23,20 @@
     </div>
   </header>
 
+  <!-- TOP NAVIGATION TABS -->
+  <div class="max-w-3xl mx-auto px-4 pt-4">
+    <div class="flex border-b border-slate-700 space-x-2">
+      <button id="tab-btn-log" onclick="switchDriverTab('log')" 
+              class="px-4 py-2.5 text-xs font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800">
+        Log Route Milk Intake
+      </button>
+      <button id="tab-btn-summary" onclick="switchDriverTab('summary')" 
+              class="px-4 py-2.5 text-xs font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+        Milk Collection Summary Log
+      </button>
+    </div>
+  </div>
+
   <main class="max-w-3xl mx-auto p-4 space-y-6">
 
     <!-- METRICS SUMMARY CARDS -->
@@ -41,112 +55,119 @@
       </div>
     </div>
 
-    <!-- RECORD FARMER INTAKE FORM (MOBILE-OPTIMIZED) -->
-    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-5">
-      <div class="border-b border-slate-700 pb-3">
-        <h2 class="text-lg font-bold text-emerald-400">Log Route Milk Intake</h2>
-        <p class="text-xs text-slate-400">Verify farmer ID code and record total liters delivered on route.</p>
-      </div>
-
-      <form id="driver-intake-form" onsubmit="handleDriverMilkIntake(event)" class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Farmer Code (KLF / AKLS / KID)</label>
-          <div class="flex gap-2">
-            <input type="text" id="driver-farmer-code" required placeholder="e.g. KLF0001 or AKLS0001" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm font-mono uppercase">
-            <button type="button" onclick="verifyFarmerCode()" id="verify-btn"
-                    class="bg-slate-700 hover:bg-slate-600 text-emerald-400 border border-slate-600 text-xs px-4 font-bold rounded-xl transition shrink-0">
-              Verify
-            </button>
-          </div>
-          <div id="verify-badge" class="hidden mt-2 text-xs font-bold px-3 py-1.5 rounded-lg"></div>
+    <!-- TAB 1: RECORD FARMER INTAKE FORM -->
+    <div id="view-driver-log" class="space-y-6">
+      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-5">
+        <div class="border-b border-slate-700 pb-3">
+          <h2 class="text-lg font-bold text-emerald-400">Log Route Milk Intake</h2>
+          <p class="text-xs text-slate-400">Verify farmer ID code and select total liters delivered on route.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form id="driver-intake-form" onsubmit="handleDriverMilkIntake(event)" class="space-y-4">
           <div>
-            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Volume Intaken (Liters)</label>
-            <input type="number" step="0.1" min="0.1" id="driver-liters" required placeholder="e.g. 45.0" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm font-semibold">
+            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Farmer Code (KLF / AKLS / KID)</label>
+            <div class="flex gap-2">
+              <input type="text" id="driver-farmer-code" required placeholder="e.g. KLF0001 or AKLS0001" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm font-mono uppercase">
+              <button type="button" onclick="verifyFarmerCode()" id="verify-btn"
+                      class="bg-slate-700 hover:bg-slate-600 text-emerald-400 border border-slate-600 text-xs px-4 font-bold rounded-xl transition shrink-0">
+                Verify
+              </button>
+            </div>
+            <div id="verify-badge" class="hidden mt-2 text-xs font-bold px-3 py-1.5 rounded-lg"></div>
           </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Volume Intaken (Liters)</label>
+              <!-- DROPDOWN WITH ¼ INCREMENTS UP TO 100 L -->
+              <select id="driver-liters" required
+                      class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm font-semibold">
+                <option value="" disabled selected>-- Select Liters (¼ L to 100 L) --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Route / Zone Code</label>
+              <input type="text" id="driver-route" placeholder="e.g. Route A" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm">
+            </div>
+          </div>
+
           <div>
-            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Route / Zone Code</label>
-            <input type="text" id="driver-route" placeholder="e.g. Route A" 
+            <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Quality / Intake Remarks (Optional)</label>
+            <input type="text" id="driver-notes" placeholder="e.g. Morning milk - Grade A" 
                    class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm">
           </div>
-        </div>
 
-        <div>
-          <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Quality / Intake Remarks (Optional)</label>
-          <input type="text" id="driver-notes" placeholder="e.g. Morning milk - Grade A" 
-                 class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm">
-        </div>
+          <div id="driver-status" class="hidden p-3.5 rounded-xl text-xs font-bold"></div>
 
-        <div id="driver-status" class="hidden p-3.5 rounded-xl text-xs font-bold"></div>
-
-        <button type="submit" id="submit-intake-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3.5 rounded-xl transition shadow-lg text-sm tracking-wide">
-          Submit Milk Record
-        </button>
-      </form>
-    </section>
-
-    <!-- REAL-TIME SUMMARY & DATE FILTERABLE LOGS -->
-    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-5">
-      
-      <!-- HEADER & CONTROLS -->
-      <div class="space-y-4 border-b border-slate-700 pb-4">
-        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-          <div>
-            <h2 class="text-lg font-bold text-emerald-400">Milk Collection Summary Log</h2>
-            <p class="text-xs text-slate-400">Filter collections by farmer name, code, or intake date.</p>
-          </div>
-          <button onclick="loadDriverSummary()" class="self-start sm:self-auto bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded-lg font-bold text-slate-200 transition">
-            Refresh Logs
+          <button type="submit" id="submit-intake-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3.5 rounded-xl transition shadow-lg text-sm tracking-wide">
+            Submit Milk Record
           </button>
-        </div>
+        </form>
+      </section>
+    </div>
 
-        <!-- SEARCH AND DATE FILTER CONTROLS -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Search Farmer / Code</label>
-            <input type="text" id="summary-search" onkeyup="applyLogFilters()" placeholder="Search by name or code..." 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+    <!-- TAB 2: REAL-TIME SUMMARY & DATE FILTERABLE LOGS -->
+    <div id="view-driver-summary" class="hidden space-y-6">
+      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-5">
+        
+        <!-- HEADER & CONTROLS -->
+        <div class="space-y-4 border-b border-slate-700 pb-4">
+          <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+            <div>
+              <h2 class="text-lg font-bold text-emerald-400">Milk Collection Summary Log</h2>
+              <p class="text-xs text-slate-400">Filter collections by farmer name, code, or intake date.</p>
+            </div>
+            <button onclick="loadDriverSummary()" class="self-start sm:self-auto bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded-lg font-bold text-slate-200 transition">
+              Refresh Logs
+            </button>
           </div>
-          <div>
-            <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Filter by Date</label>
-            <input type="date" id="summary-date-filter" onchange="applyLogFilters()" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+
+          <!-- SEARCH AND DATE FILTER CONTROLS -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Search Farmer / Code</label>
+              <input type="text" id="summary-search" onkeyup="applyLogFilters()" placeholder="Search by name or code..." 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Filter by Date</label>
+              <input type="date" id="summary-date-filter" onchange="applyLogFilters()" 
+                     class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+            </div>
+          </div>
+
+          <!-- DATE SUMMARY METRIC BADGE -->
+          <div id="date-summary-banner" class="bg-slate-900 border border-slate-700 p-3 rounded-xl flex justify-between items-center">
+            <span class="text-xs text-slate-300 font-medium">Filtered Total Volume:</span>
+            <span id="filtered-total-liters" class="text-base font-extrabold text-emerald-400">0.0 Liters</span>
           </div>
         </div>
 
-        <!-- DATE SUMMARY METRIC BADGE -->
-        <div id="date-summary-banner" class="bg-slate-900 border border-slate-700 p-3 rounded-xl flex justify-between items-center">
-          <span class="text-xs text-slate-300 font-medium">Filtered Total Volume:</span>
-          <span id="filtered-total-liters" class="text-base font-extrabold text-emerald-400">0.0 Liters</span>
+        <!-- COLLECTIONS TABLE -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-700 text-slate-400 text-[11px] uppercase tracking-wider bg-slate-900/60">
+                <th class="py-2.5 px-3">#</th>
+                <th class="py-2.5 px-3">Farmer Code</th>
+                <th class="py-2.5 px-3">Farmer Full Name</th>
+                <th class="py-2.5 px-3">Volume (L)</th>
+                <th class="py-2.5 px-3">Time / Date</th>
+                <th class="py-2.5 px-3">Notes</th>
+              </tr>
+            </thead>
+            <tbody id="summary-table-body" class="divide-y divide-slate-700/50 text-xs text-slate-200">
+              <tr>
+                <td colspan="6" class="py-6 text-center text-slate-500 font-medium">Loading collection logs...</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </div>
 
-      <!-- COLLECTIONS TABLE -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="border-b border-slate-700 text-slate-400 text-[11px] uppercase tracking-wider bg-slate-900/60">
-              <th class="py-2.5 px-3">#</th>
-              <th class="py-2.5 px-3">Farmer Code</th>
-              <th class="py-2.5 px-3">Farmer Full Name</th>
-              <th class="py-2.5 px-3">Volume (L)</th>
-              <th class="py-2.5 px-3">Time / Date</th>
-              <th class="py-2.5 px-3">Notes</th>
-            </tr>
-          </thead>
-          <tbody id="summary-table-body" class="divide-y divide-slate-700/50 text-xs text-slate-200">
-            <tr>
-              <td colspan="6" class="py-6 text-center text-slate-500 font-medium">Loading collection logs...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-    </section>
+      </section>
+    </div>
 
   </main>
 
@@ -168,12 +189,73 @@
         document.getElementById('driver-user-display').innerText = `${user.full_name || 'Driver'} (${user.role || 'DRIVER'})`;
       } catch (e) {}
 
+      // Populate Volume Dropdown (¼ L to 100 L)
+      populateVolumeDropdown();
+
       // Default filter to today's date YYYY-MM-DD
       const todayStr = new Date().toISOString().split('T')[0];
       document.getElementById('summary-date-filter').value = todayStr;
 
       loadDriverSummary();
     });
+
+    // Populate Volume Dropdown from ¼ L up to 100.0 L
+    function populateVolumeDropdown() {
+      const select = document.getElementById('driver-liters');
+      if (!select) return;
+
+      // Clear existing options except default placeholder
+      select.innerHTML = '<option value="" disabled selected>-- Select Liters (¼ L to 100 L) --</option>';
+
+      for (let i = 1; i <= 400; i++) {
+        const val = i * 0.25; // Value in decimal (e.g. 0.25, 0.5, 0.75, 1.0)
+        const whole = Math.floor(val);
+        const frac = i % 4;
+
+        let fracSymbol = '';
+        if (frac === 1) fracSymbol = '¼';
+        else if (frac === 2) fracSymbol = '½';
+        else if (frac === 3) fracSymbol = '¾';
+
+        let label = '';
+        if (whole === 0) {
+          label = `${fracSymbol} L`;
+        } else if (fracSymbol === '') {
+          label = `${whole}.0 L`;
+        } else {
+          label = `${whole} ${fracSymbol} L`;
+        }
+
+        const opt = document.createElement('option');
+        opt.value = val.toFixed(2);
+        opt.textContent = `${label} (${val.toFixed(2)} Liters)`;
+        select.appendChild(opt);
+      }
+    }
+
+    // Driver Tab Navigation Switcher
+    function switchDriverTab(tabName) {
+      const viewLog = document.getElementById('view-driver-log');
+      const viewSummary = document.getElementById('view-driver-summary');
+      const btnLog = document.getElementById('tab-btn-log');
+      const btnSummary = document.getElementById('tab-btn-summary');
+
+      if (tabName === 'summary') {
+        viewLog.classList.add('hidden');
+        viewSummary.classList.remove('hidden');
+
+        btnSummary.className = 'px-4 py-2.5 text-xs font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
+        btnLog.className = 'px-4 py-2.5 text-xs font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
+
+        loadDriverSummary();
+      } else {
+        viewSummary.classList.add('hidden');
+        viewLog.classList.remove('hidden');
+
+        btnLog.className = 'px-4 py-2.5 text-xs font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
+        btnSummary.className = 'px-4 py-2.5 text-xs font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
+      }
+    }
 
     // Verify Farmer ID Code
     async function verifyFarmerCode() {
@@ -232,7 +314,7 @@
 
       const payload = {
         farmer_code: document.getElementById('driver-farmer-code').value.trim().toUpperCase(),
-        liters: document.getElementById('driver-liters').value.trim(),
+        liters: document.getElementById('driver-liters').value,
         route: document.getElementById('driver-route').value.trim(),
         notes: document.getElementById('driver-notes').value.trim()
       };
@@ -256,7 +338,7 @@
 
         status.className = 'p-3.5 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-200 border border-emerald-500/50 block';
         const nameMsg = data.farmer_name ? ` for ${data.farmer_name}` : '';
-        status.innerText = `Recorded ${payload.liters} L (${payload.farmer_code})${nameMsg} successfully!`;
+        status.innerText = `Recorded ${parseFloat(payload.liters).toFixed(2)} L (${payload.farmer_code})${nameMsg} successfully!`;
 
         document.getElementById('driver-intake-form').reset();
         document.getElementById('verify-badge').classList.add('hidden');
@@ -320,7 +402,7 @@
 
       // Calculate total volume for filtered records
       const totalFilteredVolume = filtered.reduce((acc, curr) => acc + Number(curr.volume_liters || curr.liters || 0), 0);
-      document.getElementById('filtered-total-liters').innerText = `${totalFilteredVolume.toFixed(1)} Liters`;
+      document.getElementById('filtered-total-liters').innerText = `${totalFilteredVolume.toFixed(2)} Liters`;
 
       renderSummaryTable(filtered);
     }
@@ -337,7 +419,7 @@
       tbody.innerHTML = items.map((item, index) => {
         const code = item.farmer_code || item.farmers?.farmer_code || item.farmers?.kid || 'N/A';
         const name = item.farmers?.full_name || item.farmer_name || 'Standard Farmer';
-        const volume = Number(item.volume_liters || item.liters || 0).toFixed(1);
+        const volume = Number(item.volume_liters || item.liters || 0).toFixed(2);
         const timeFormatted = item.collected_at ? new Date(item.collected_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A';
 
         return `
