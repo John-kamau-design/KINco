@@ -54,7 +54,7 @@ export const recordCollection = async (req: Request, res: Response) => {
     let resolvedFarmerCode = farmer_code ? farmer_code.trim().toUpperCase() : null;
     let farmerName = '';
 
-    // If farmer_code is provided, look up the farmer record
+    // If farmer_code is provided, look up the farmer record to get farmer_id
     if (resolvedFarmerCode && !targetFarmerId) {
       const { data: farmer, error: farmerError } = await supabase
         .from('farmers')
@@ -83,11 +83,10 @@ export const recordCollection = async (req: Request, res: Response) => {
       if (routeData) route_id = routeData.id;
     }
 
-    // Build core insert payload
+    // Construct schema-safe insert object (excluding farmer_code and conditionally clerk_name)
     const insertPayload: Record<string, any> = {
       driver_id,
       farmer_id: targetFarmerId,
-      farmer_code: resolvedFarmerCode,
       route_id,
       volume_liters: intakeVolume,
       can_count: can_count ? parseInt(can_count, 10) : 1,
@@ -95,22 +94,21 @@ export const recordCollection = async (req: Request, res: Response) => {
       collected_at: new Date().toISOString()
     };
 
-    // Only include clerk_name key if explicitly provided by clerk UI
     if (clerk_name) {
       insertPayload.clerk_name = clerk_name;
     }
 
-    // Attempt collection insert
+    // Insert collection into DB
     let { data, error } = await supabase
       .from('collections')
       .insert([insertPayload])
       .select(`
         id, volume_liters, can_count, collected_at,
-        farmers (farmer_code, full_name)
+        farmers (farmer_code, full_name, kid)
       `)
       .single();
 
-    // Safe fallback if 'clerk_name' column is missing in Supabase schema
+    // Fallback if clerk_name column is missing in Supabase schema
     if (error && error.message?.includes('clerk_name')) {
       delete insertPayload.clerk_name;
       const retryResult = await supabase
@@ -118,7 +116,7 @@ export const recordCollection = async (req: Request, res: Response) => {
         .insert([insertPayload])
         .select(`
           id, volume_liters, can_count, collected_at,
-          farmers (farmer_code, full_name)
+          farmers (farmer_code, full_name, kid)
         `)
         .single();
       
