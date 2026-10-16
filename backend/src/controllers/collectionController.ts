@@ -122,25 +122,31 @@ export const recordCollection = async (req: Request, res: Response) => {
   }
 };
 
-// Fetch today's summary for driver / clerk overview
-export const getDriverDailySummary = async (_req: Request, res: Response) => {
+// Fetch daily summary and full history for Driver Portal
+export const getDriverDailySummary = async (req: Request, res: Response) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Fetch all collections with joined farmer details
     const { data: collections, error } = await supabase
       .from('collections')
       .select(`
-        id, volume_liters, can_count, collected_at, farmer_code, notes, clerk_name,
-        farmers (farmer_code, full_name)
+        id, volume_liters, collected_at, notes, clerk_name, farmer_code,
+        farmers (id, farmer_code, kid, full_name, route)
       `)
-      .gte('collected_at', today.toISOString())
       .order('collected_at', { ascending: false });
 
     if (error) throw error;
 
-    const totalLiters = collections ? collections.reduce((acc, item) => acc + Number(item.volume_liters), 0) : 0;
-    const totalPickups = collections ? collections.length : 0;
+    // Calculate metrics for today specifically
+    const todayCollections = collections ? collections.filter(item => {
+      const itemDate = new Date(item.collected_at);
+      return itemDate >= today;
+    }) : [];
+
+    const totalLiters = todayCollections.reduce((acc, item) => acc + Number(item.volume_liters || 0), 0);
+    const totalPickups = todayCollections.length;
 
     return res.status(200).json({
       totalLiters,
@@ -148,6 +154,7 @@ export const getDriverDailySummary = async (_req: Request, res: Response) => {
       recentCollections: collections || []
     });
   } catch (error: any) {
-    return res.status(500).json({ message: error.message || 'Error fetching summary' });
+    console.error('Error fetching driver summary:', error);
+    return res.status(500).json({ message: error.message || 'Error fetching driver summary' });
   }
 };
