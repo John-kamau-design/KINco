@@ -54,7 +54,7 @@ export const recordCollection = async (req: Request, res: Response) => {
     let resolvedFarmerCode = farmer_code ? farmer_code.trim().toUpperCase() : null;
     let farmerName = '';
 
-    // If farmer_code is provided (from Clerk form), look up the farmer record
+    // If farmer_code is provided, look up the farmer record
     if (resolvedFarmerCode && !targetFarmerId) {
       const { data: farmer, error: farmerError } = await supabase
         .from('farmers')
@@ -83,28 +83,48 @@ export const recordCollection = async (req: Request, res: Response) => {
       if (routeData) route_id = routeData.id;
     }
 
-    // Insert collection into DB
-    // Insert collection into DB
-    const { data, error } = await supabase
+    // Build core insert payload
+    const insertPayload: Record<string, any> = {
+      driver_id,
+      farmer_id: targetFarmerId,
+      farmer_code: resolvedFarmerCode,
+      route_id,
+      volume_liters: intakeVolume,
+      can_count: can_count ? parseInt(can_count, 10) : 1,
+      notes: notes || null,
+      collected_at: new Date().toISOString()
+    };
+
+    // Only include clerk_name key if explicitly provided by clerk UI
+    if (clerk_name) {
+      insertPayload.clerk_name = clerk_name;
+    }
+
+    // Attempt collection insert
+    let { data, error } = await supabase
       .from('collections')
-      .insert([
-        {
-          driver_id,
-          farmer_id: targetFarmerId,
-          farmer_code: resolvedFarmerCode,
-          route_id,
-          volume_liters: intakeVolume,
-          can_count: can_count ? parseInt(can_count, 10) : 1,
-          notes: notes || null,
-          clerk_name: clerk_name || null,
-          collected_at: new Date().toISOString()
-        }
-      ])
+      .insert([insertPayload])
       .select(`
         id, volume_liters, can_count, collected_at,
         farmers (farmer_code, full_name)
       `)
       .single();
+
+    // Safe fallback if 'clerk_name' column is missing in Supabase schema
+    if (error && error.message?.includes('clerk_name')) {
+      delete insertPayload.clerk_name;
+      const retryResult = await supabase
+        .from('collections')
+        .insert([insertPayload])
+        .select(`
+          id, volume_liters, can_count, collected_at,
+          farmers (farmer_code, full_name)
+        `)
+        .single();
+      
+      data = retryResult.data;
+      error = retryResult.error;
+    }
 
     if (error) throw error;
 
