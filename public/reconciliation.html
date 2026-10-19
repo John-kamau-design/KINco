@@ -138,7 +138,7 @@
     loadReconciliationHistory();
   });
 
-  /**
+/**
    * Populates the active drivers dropdown from /api/auth/drivers
    */
   async function loadDriversDropdown() {
@@ -149,20 +149,30 @@
     select.innerHTML = `<option value="">-- Scanning Active Drivers... --</option>`;
 
     try {
-      const res = await fetch('/api/auth/drivers', {
+      let res = await fetch('/api/auth/drivers', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (!res.ok) throw new Error('Failed to load active drivers');
+      if (!res.ok) {
+        // Fallback to alias endpoint
+        res = await fetch('/api/auth/users', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+
+      if (!res.ok) throw new Error('Failed to load active drivers from auth service');
 
       const data = await res.json();
-      const drivers = data.drivers || data.users || [];
+      const drivers = data.drivers || data.users || (Array.isArray(data) ? data : []);
 
-      if (drivers.length > 0) {
+      if (Array.isArray(drivers) && drivers.length > 0) {
         select.innerHTML = '<option value="">-- Select Active Driver --</option>' + 
-          drivers.map(d => `<option value="${d.id}">${d.full_name || d.email || `Driver (${d.id.substring(0, 8)})`}</option>`).join('');
+          drivers.map(d => {
+            const name = d.full_name || d.email || `Driver (${(d.id || '').substring(0, 8)})`;
+            return `<option value="${d.id}">${name}</option>`;
+          }).join('');
       } else {
-        select.innerHTML = `<option value="">-- No Drivers Found --</option>`;
+        select.innerHTML = `<option value="">-- No Registered Drivers Found --</option>`;
       }
     } catch (err) {
       console.error('Error loading drivers dropdown:', err);
