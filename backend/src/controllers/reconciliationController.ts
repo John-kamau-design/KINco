@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 
-// Helper to validate UUID format
-const isValidUUID = (id: string) => {
+// Helper to validate UUID format strictly
+const isValidUUID = (id: any) => {
+  if (!id || typeof id !== 'string') return false;
   const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return regex.test(id);
 };
@@ -23,11 +24,15 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     const totalStationLiters = Math.round(parsedStationLiters * 100) / 100;
     const targetDate = collection_date || new Date().toISOString().split('T')[0];
 
+    // Sanitize driver_id: If your DB uses integer IDs (e.g. "6"), convert or handle accordingly, 
+    // otherwise ensure it's a valid UUID if the column is uuid type.
+    const sanitizedDriverId = isValidUUID(driver_id) ? driver_id : String(driver_id);
+
     // 1. Fetch collection sum for the driver on target date
     const { data: collections, error: colError } = await supabase
       .from('collections')
       .select('volume_liters, collected_at')
-      .eq('driver_id', driver_id);
+      .eq('driver_id', sanitizedDriverId);
 
     if (colError) throw colError;
 
@@ -43,23 +48,23 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     const fallbackVariance = Math.round(rawVariance * 100) / 100;
     const isFlagged = Math.abs(fallbackVariance) > 0.5;
 
-    // Sanitize clerk_id: if it's not a valid UUID (e.g. legacy integer "5"), set to null to avoid SQL type errors
+    // Sanitize clerk_id: must be valid UUID or null
     const validClerkId = user?.id && isValidUUID(String(user.id)) ? user.id : null;
 
     // 2. Insert into reconciliations table (Omit variance_liters as it's database-generated)
+    const insertPayload: any = {
+      driver_id: sanitizedDriverId,
+      collection_date: targetDate,
+      total_driver_liters: totalDriverLiters,
+      total_station_liters: totalStationLiters,
+      status: isFlagged ? 'VARIANCE_FLAGGED' : 'MATCHED',
+      clerk_notes: clerk_notes || '',
+      clerk_id: validClerkId
+    };
+
     const { data: reconData, error: reconError } = await supabase
       .from('reconciliations')
-      .insert([
-        {
-          driver_id,
-          collection_date: targetDate,
-          total_driver_liters: totalDriverLiters,
-          total_station_liters: totalStationLiters,
-          status: isFlagged ? 'VARIANCE_FLAGGED' : 'MATCHED',
-          clerk_notes: clerk_notes || '',
-          clerk_id: validClerkId
-        }
-      ])
+      .insert([insertPayload])
       .select()
       .single();
 
