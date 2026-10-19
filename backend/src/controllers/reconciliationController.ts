@@ -18,10 +18,10 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     const totalStationLiters = Math.round(parsedStationLiters * 100) / 100;
     const targetDate = collection_date || new Date().toISOString().split('T')[0];
 
-    // 1. Fetch collection sum for the driver on target date
+    // 1. Fetch collections for the driver on target date to calculate totals and extract route_code
     const { data: collections, error: colError } = await supabase
       .from('collections')
-      .select('volume_liters, collected_at')
+      .select('volume_liters, collected_at, route_code')
       .eq('driver_id', parsedDriverId);
 
     if (colError) throw colError;
@@ -34,18 +34,22 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     const rawDriverSum = matchingCollections.reduce((acc, c) => acc + Number(c.volume_liters || 0), 0);
     const totalDriverLiters = Math.round(rawDriverSum * 100) / 100;
 
+    // Extract route_code from collections or fallback safely
+    const routeCode = matchingCollections.find(c => c.route_code)?.route_code || 'ROUTE-DEFAULT';
+
     const rawVariance = totalStationLiters - totalDriverLiters;
     const fallbackVariance = Math.round(rawVariance * 100) / 100;
     const isFlagged = Math.abs(fallbackVariance) > 0.5;
 
     const parsedClerkId = user?.id ? parseInt(user.id, 10) : null;
 
-    // 2. Insert into reconciliations table (Omit variance_liters as it's database-generated)
+    // 2. Insert into reconciliations table including route_code (omit variance_liters as it's database-generated)
     const insertPayload: any = {
       driver_id: parsedDriverId,
       collection_date: targetDate,
       total_driver_liters: totalDriverLiters,
       total_station_liters: totalStationLiters,
+      route_code: routeCode,
       status: isFlagged ? 'VARIANCE_FLAGGED' : 'MATCHED',
       clerk_notes: clerk_notes || '',
       clerk_id: !isNaN(parsedClerkId!) ? parsedClerkId : null
