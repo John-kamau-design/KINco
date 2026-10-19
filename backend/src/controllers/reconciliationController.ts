@@ -1,9 +1,12 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 
-/**
- * Reconcile Driver Field Intake against Station Offload using driver_id
- */
+// Helper to validate UUID format
+const isValidUUID = (id: string) => {
+  const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return regex.test(id);
+};
+
 export const processOffloadReconciliation = async (req: Request, res: Response) => {
   try {
     const { driver_id, collection_date, station_liters, clerk_notes } = req.body;
@@ -40,7 +43,10 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     const fallbackVariance = Math.round(rawVariance * 100) / 100;
     const isFlagged = Math.abs(fallbackVariance) > 0.5;
 
-    // 2. Insert into reconciliations table (Omit variance_liters since it's database-generated)
+    // Sanitize clerk_id: if it's not a valid UUID (e.g. legacy integer "5"), set to null to avoid SQL type errors
+    const validClerkId = user?.id && isValidUUID(String(user.id)) ? user.id : null;
+
+    // 2. Insert into reconciliations table (Omit variance_liters as it's database-generated)
     const { data: reconData, error: reconError } = await supabase
       .from('reconciliations')
       .insert([
@@ -51,7 +57,7 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
           total_station_liters: totalStationLiters,
           status: isFlagged ? 'VARIANCE_FLAGGED' : 'MATCHED',
           clerk_notes: clerk_notes || '',
-          clerk_id: user?.id || null
+          clerk_id: validClerkId
         }
       ])
       .select()
@@ -83,9 +89,7 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     return res.status(500).json({ message: err.message || 'Error processing offload reconciliation' });
   }
 };
-/**
- * Fetch Reconciliation History with Driver & Date Filters
- */
+
 export const getReconciliationHistory = async (req: Request, res: Response) => {
   try {
     const { date, driver_id, route_code } = req.query;
@@ -94,7 +98,7 @@ export const getReconciliationHistory = async (req: Request, res: Response) => {
       .from('reconciliations')
       .select(`
         *,
-        users:driver_id (id, full_name, email)
+        users:driver_id (id, full_name, national_id, phone_number, email)
       `)
       .order('collection_date', { ascending: false });
 
@@ -108,27 +112,55 @@ export const getReconciliationHistory = async (req: Request, res: Response) => {
       query = query.eq('route_code', route_code as string);
     }
 
-    const { data, error } = await query;
+    let { data, error } = await query;
     
-    // Schema fallback if user join is not directly mapped
-    if (error) {
+    if (error || !data || data.length === 0) {
       const fallbackQuery = await supabase
         .from('reconciliations')
         .select('*')
         .order('collection_date', { ascending: false });
       
       if (fallbackQuery.error) throw fallbackQuery.error;
-      
-      return res.status(200).json({
-        success: true,
-        reconciliations: fallbackQuery.data || []
-      });
+      data = fallbackQuery.data || [];
     }
+
+    const driverIds = Array.from(new Set((data || []).map((r: any) => r.driver_id).filter(Boolean)));
+    let userMap: Record<string, any> = {};
+
+    if (driverIds.length > 0) {
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, full_name, national_id, phone_number, email')
+        .in('id', driverIds);
+
+      if (usersData) {
+        userMap = usersData.reduce((acc: any, u: any) => {
+          acc[u.id] = u;
+          return acc;
+        }, {});
+      }
+    }
+
+    const enrichedReconciliations = (data || []).map((item: any) => {
+      const matchedUser = item.users || userMap[item.driver_id] || {};
+      const driverName = matchedUser.full_name || matchedUser.national_id || matchedUser.phone_number || matchedUser.email || `Driver (${String(item.driver_id || '').substring(0, 8)})`;
+
+      return {
+        ...item,
+        users: {
+          full_name: driverName,
+          ...matchedUser
+        },
+        driver_name: driverName
+      };
+    });
 
     return res.status(200).json({
       success: true,
-      reconciliations: data || []
+      reconciliations: enrichedReconciliations,
+      logs: enrichedReconciliations
     });
+
   } catch (error: any) {
     console.error('Fetch reconciliation history error:', error);
     return res.status(500).json({ message: error.message || 'Error fetching reconciliation logs' });
