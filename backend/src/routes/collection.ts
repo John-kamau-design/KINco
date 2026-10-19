@@ -21,7 +21,7 @@ const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   }
 
   try {
-    const secret = process.env.JWT_SECRET || 'kinco-secret-key';
+    const secret = process.env.JWT_SECRET || 'kinco-secret-key-2026';
     const decoded: any = jwt.verify(token, secret);
 
     // Normalize user payload so controllers can reliably read req.user.id and req.user.role
