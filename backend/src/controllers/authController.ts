@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/supabase';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'kinco-secret-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'kinco_secret_key_2026';
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
