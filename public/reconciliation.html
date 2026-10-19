@@ -53,8 +53,16 @@
           </div>
           <div>
             <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Station Measured Offload (Liters)</label>
-            <input type="number" step="0.25" min="0" id="recon-station-liters" required placeholder="0.00" 
-                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl p-3 text-white focus:outline-none transition text-sm font-bold text-emerald-400">
+            <input 
+            type="number" 
+             id="recon-station-liters" 
+             name="station_liters"
+             step="0.01" 
+             min="0" 
+             placeholder="e.g. 45.50" 
+             required 
+             class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 font-mono text-sm focus:outline-none focus:border-emerald-500 transition"
+            />
           </div>
         </div>
 
@@ -183,96 +191,99 @@
   /**
    * Executes reconciliation processing on form submission
    */
-  async function handleReconciliationSubmit(e) {
-    e.preventDefault();
-    
-    const btn = document.getElementById('recon-submit-btn');
-    const status = document.getElementById('recon-status');
-    const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+async function handleReconciliationSubmit(e) {
+  e.preventDefault();
+  
+  const btn = document.getElementById('recon-submit-btn');
+  const status = document.getElementById('recon-status');
+  const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
 
-    const driverSelect = document.getElementById('recon-driver-id');
-    const driver_id = driverSelect ? driverSelect.value.trim() : '';
-    const collection_date = document.getElementById('recon-date')?.value || new Date().toISOString().split('T')[0];
-    const station_liters = document.getElementById('recon-station-liters')?.value || '';
-    const clerk_notes = document.getElementById('recon-notes')?.value.trim() || '';
+  const driverSelect = document.getElementById('recon-driver-id');
+  const driver_id = driverSelect ? driverSelect.value.trim() : '';
+  const collection_date = document.getElementById('recon-date')?.value || new Date().toISOString().split('T')[0];
+  const rawStationInput = document.getElementById('recon-station-liters')?.value;
+  const clerk_notes = document.getElementById('recon-notes')?.value.trim() || '';
 
-    if (!driver_id) {
-      alert('Please select an active driver from the list.');
-      return;
-    }
-
-    if (!station_liters || parseFloat(station_liters) <= 0) {
-      alert('Please enter a valid Measured Station Volume (Liters).');
-      return;
-    }
-
-    const payload = {
-      driver_id,
-      collection_date,
-      station_liters: parseFloat(station_liters),
-      clerk_notes
-    };
-
-    btn.disabled = true;
-    btn.innerText = 'Calculating Variance...';
-    if (status) status.classList.add('hidden');
-
-    try {
-      const res = await fetch('/api/reconciliation/process', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to process reconciliation');
-
-      const metrics = data.metrics || data.reconciliation || {};
-      const driverTotal = Number(metrics.total_driver_liters || metrics.driver_total || 0);
-      const stationTotal = Number(metrics.total_station_liters || metrics.station_total || station_liters);
-      const variance = Number(metrics.variance_liters || (stationTotal - driverTotal));
-      const isFlagged = metrics.status === 'VARIANCE_FLAGGED' || Math.abs(variance) > 0.5;
-
-      if (status) {
-        status.className = isFlagged 
-          ? 'p-4 rounded-xl text-xs font-bold bg-amber-950/80 text-amber-200 border border-amber-500/50 block shadow-lg'
-          : 'p-4 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-200 border border-emerald-500/50 block shadow-lg';
-
-        status.innerHTML = `
-          <div class="text-sm font-extrabold mb-1">${data.message || 'Reconciliation Complete'}</div>
-          <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-700/60 font-mono text-[11px]">
-            <div>Field Intake: <span class="text-white font-bold">${driverTotal.toFixed(2)} L</span></div>
-            <div>Station Recv: <span class="text-white font-bold">${stationTotal.toFixed(2)} L</span></div>
-            <div>Variance: <span class="${variance < 0 ? 'text-red-400' : 'text-emerald-400'} font-bold">${variance > 0 ? '+' : ''}${variance.toFixed(2)} L</span></div>
-          </div>
-        `;
-        status.classList.remove('hidden');
-      }
-
-      document.getElementById('reconciliation-form')?.reset();
-      if (document.getElementById('recon-date')) {
-        document.getElementById('recon-date').value = collection_date;
-      }
-
-      // Reload reconciliation logs table
-      loadReconciliationHistory();
-    } catch (err) {
-      console.error('Reconciliation submission error:', err);
-      if (status) {
-        status.className = 'p-3.5 rounded-xl text-xs font-bold bg-red-950/80 text-red-200 border border-red-500/50 block';
-        status.innerText = err.message || 'Error executing reconciliation';
-        status.classList.remove('hidden');
-      } else {
-        alert(err.message || 'Error executing reconciliation');
-      }
-    } finally {
-      btn.disabled = false;
-      btn.innerText = 'Reconcile Route Offload';
-    }
+  if (!driver_id) {
+    alert('Please select an active driver from the list.');
+    return;
   }
+
+  // Parse and round strictly to 2 decimal places
+  const station_liters = parseFloat(rawStationInput);
+
+  if (isNaN(station_liters) || station_liters < 0) {
+    alert('Please enter a valid, non-negative Measured Station Volume (e.g., 450.50).');
+    return;
+  }
+
+  // Format to exact 2 decimal places float
+  const normalizedStationLiters = Number(station_liters.toFixed(2));
+
+  const payload = {
+    driver_id,
+    collection_date,
+    station_liters: normalizedStationLiters,
+    clerk_notes
+  };
+
+  btn.disabled = true;
+  btn.innerText = 'Calculating Variance...';
+  if (status) status.classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/reconciliation/process', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to process reconciliation');
+
+    const metrics = data.metrics || data.reconciliation || {};
+    const driverTotal = Number(metrics.total_driver_liters || 0);
+    const stationTotal = Number(metrics.total_station_liters || normalizedStationLiters);
+    const variance = Number(metrics.variance_liters || (stationTotal - driverTotal));
+    const isFlagged = metrics.status === 'VARIANCE_FLAGGED' || Math.abs(variance) > 0.5;
+
+    if (status) {
+      status.className = isFlagged 
+        ? 'p-4 rounded-xl text-xs font-bold bg-amber-950/80 text-amber-200 border border-amber-500/50 block shadow-lg'
+        : 'p-4 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-200 border border-emerald-500/50 block shadow-lg';
+
+      status.innerHTML = `
+        <div class="text-sm font-extrabold mb-1">${data.message || 'Reconciliation Complete'}</div>
+        <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-700/60 font-mono text-[11px]">
+          <div>Field Intake: <span class="text-white font-bold">${driverTotal.toFixed(2)} L</span></div>
+          <div>Station Recv: <span class="text-white font-bold">${stationTotal.toFixed(2)} L</span></div>
+          <div>Variance: <span class="${variance < 0 ? 'text-red-400' : 'text-emerald-400'} font-bold">${variance > 0 ? '+' : ''}${variance.toFixed(2)} L</span></div>
+        </div>
+      `;
+      status.classList.remove('hidden');
+    }
+
+    document.getElementById('reconciliation-form')?.reset();
+    if (document.getElementById('recon-date')) {
+      document.getElementById('recon-date').value = collection_date;
+    }
+
+    loadReconciliationHistory();
+  } catch (err) {
+    console.error('Reconciliation error:', err);
+    if (status) {
+      status.className = 'p-3.5 rounded-xl text-xs font-bold bg-red-950/80 text-red-200 border border-red-500/50 block';
+      status.innerText = err.message || 'Error executing reconciliation';
+      status.classList.remove('hidden');
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerText = 'Reconcile Route Offload';
+  }
+}
 
   /**
    * Fetches and renders reconciliation audit logs
