@@ -113,42 +113,44 @@ export const loginUser = async (req: Request, res: Response) => {
 
 export const getDrivers = async (req: Request, res: Response) => {
   try {
-    // 1. Query users table for explicit DRIVER role (Case insensitive in array)
-    const { data: users, error: userError } = await supabase
+    // 1. Fetch all users using columns saved during registerUser
+    const { data: allUsers, error: userError } = await supabase
       .from('users')
-      .select('id, full_name, email, role')
-      .in('role', ['DRIVER', 'driver', 'Driver']);
+      .select('id, full_name, national_id, phone_number, role');
 
-    if (!userError && users && users.length > 0) {
+    if (!userError && allUsers && allUsers.length > 0) {
+      // Helper to cleanly extract display name
+      const formatUserName = (u: any) => {
+        if (u.full_name && u.full_name.trim() !== '') return u.full_name;
+        if (u.national_id) return `Driver (${u.national_id})`;
+        if (u.phone_number) return `Driver (${u.phone_number})`;
+        return `Driver (${String(u.id).substring(0, 8)})`;
+      };
+
+      // Filter for DRIVER role (case-insensitive)
+      const driverUsers = allUsers.filter(u => {
+        const role = String(u.role || '').toUpperCase();
+        return role === 'DRIVER' || role === 'DRIVER_ROLE';
+      });
+
+      const driversToReturn = driverUsers.length > 0 ? driverUsers : allUsers;
+
+      const formattedDrivers = driversToReturn.map(u => ({
+        id: u.id,
+        full_name: formatUserName(u),
+        national_id: u.national_id || '',
+        phone_number: u.phone_number || '',
+        role: u.role
+      }));
+
       return res.status(200).json({
         success: true,
-        drivers: users,
-        users
+        drivers: formattedDrivers,
+        users: formattedDrivers
       });
     }
 
-    // 2. Secondary check: Query ALL users in case role column isn't standardized
-    const { data: allUsers } = await supabase
-      .from('users')
-      .select('id, full_name, email, role')
-      .order('full_name', { ascending: true });
-
-    if (allUsers && allUsers.length > 0) {
-      // Filter in memory for maximum safety
-      const driverMatches = allUsers.filter(u => 
-        u.role && u.role.toString().toUpperCase() === 'DRIVER'
-      );
-
-      if (driverMatches.length > 0) {
-        return res.status(200).json({
-          success: true,
-          drivers: driverMatches,
-          users: driverMatches
-        });
-      }
-    }
-
-    // 3. Fallback: Extract driver_ids directly from collections table
+    // 2. Fallback: Lookup driver_ids from collections table if users query returned empty
     const { data: colData } = await supabase
       .from('collections')
       .select('driver_id');
@@ -158,30 +160,24 @@ export const getDrivers = async (req: Request, res: Response) => {
     );
 
     if (uniqueDriverIds.length === 0) {
-      // Return any users registered in system if no collections exist yet
-      const fallbackList = (allUsers || []).map(u => ({
-        id: u.id,
-        full_name: u.full_name || u.email || `User (${u.id.substring(0, 8)})`
-      }));
-
-      return res.status(200).json({ 
-        success: true, 
-        drivers: fallbackList, 
-        users: fallbackList 
-      });
+      return res.status(200).json({ success: true, drivers: [], users: [] });
     }
 
-    // Query names for matched IDs
+    // Map matched IDs back to full names
     const { data: matchedUsers } = await supabase
       .from('users')
-      .select('id, full_name, email')
+      .select('id, full_name, national_id, phone_number')
       .in('id', uniqueDriverIds);
 
     const drivers = uniqueDriverIds.map(id => {
-      const match = (matchedUsers || []).find(u => u.id === id);
+      const match = (matchedUsers || []).find(u => String(u.id) === String(id));
+      const displayName = match 
+        ? (match.full_name || match.national_id || match.phone_number)
+        : null;
+
       return {
         id,
-        full_name: match?.full_name || match?.email || `Driver (${String(id).substring(0, 8)}...)`
+        full_name: displayName || `Driver (${String(id).substring(0, 8)})`
       };
     });
 
@@ -193,7 +189,6 @@ export const getDrivers = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error('Error fetching drivers:', error);
-    // Never crash the UI dropdown; return empty array with 200 rather than hard 500 error
     return res.status(200).json({ 
       success: false, 
       drivers: [], 
@@ -202,6 +197,7 @@ export const getDrivers = async (req: Request, res: Response) => {
     });
   }
 };
+
 // Aliases to ensure backward compatibility with backend/src/routes/auth.ts imports
 export const login = loginUser;
 export const signInCheck = loginUser;
