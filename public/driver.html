@@ -305,117 +305,76 @@
       }
     }
 
-   // Submit Driver Milk Collection
-    async function handleDriverMilkIntake(e) {
-      e.preventDefault();
-      const btn = document.getElementById('submit-intake-btn');
-      const status = document.getElementById('driver-status');
-      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
-      const userStr = localStorage.getItem('kinco_user');
+// Cleaned up intake handler in driver.html
+async function handleDriverMilkIntake(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submit-intake-btn');
+  const status = document.getElementById('driver-status');
+  const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
 
-      let driverId = '';
-      if (userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          driverId = user.id || user.user_id || user.sub || '';
-        } catch (e) {}
-      }
+  const payload = {
+    farmer_code: document.getElementById('driver-farmer-code').value.trim().toUpperCase(),
+    liters: document.getElementById('driver-liters').value,
+    route: document.getElementById('driver-route').value.trim(),
+    notes: document.getElementById('driver-notes').value.trim()
+  };
 
-      const payload = {
-        driver_id: driverId, // 👈 Explicitly include driver UUID for robust backend association
-        farmer_code: document.getElementById('driver-farmer-code').value.trim().toUpperCase(),
-        liters: document.getElementById('driver-liters').value,
-        route: document.getElementById('driver-route').value.trim(),
-        notes: document.getElementById('driver-notes').value.trim()
-      };
+  btn.disabled = true;
+  btn.innerText = 'Logging Collection...';
+  status.classList.add('hidden');
 
-      btn.disabled = true;
-      btn.innerText = 'Logging Collection...';
-      status.classList.add('hidden');
+  try {
+    const res = await fetch('/api/collections/record', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
 
-      try {
-        const res = await fetch('/api/collections/record', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to record collection');
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || data.error || 'Failed to record intake');
+    status.className = 'p-3.5 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-200 border border-emerald-500/50 block';
+    status.innerText = `Recorded ${parseFloat(payload.liters).toFixed(2)} L successfully!`;
 
-        status.className = 'p-3.5 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-200 border border-emerald-500/50 block';
-        const nameMsg = data.farmer_name ? ` for ${data.farmer_name}` : '';
-        status.innerText = `Recorded ${parseFloat(payload.liters).toFixed(2)} L (${payload.farmer_code})${nameMsg} successfully!`;
+    document.getElementById('driver-intake-form').reset();
+    document.getElementById('verify-badge').classList.add('hidden');
 
-        document.getElementById('driver-intake-form').reset();
-        document.getElementById('verify-badge').classList.add('hidden');
+    loadDriverSummary();
+  } catch (err) {
+    status.className = 'p-3.5 rounded-xl text-xs font-bold bg-red-950/80 text-red-200 border border-red-500/50 block';
+    status.innerText = err.message || 'Error recording intake';
+  } finally {
+    btn.disabled = false;
+    btn.innerText = 'Submit Milk Record';
+  }
+}
 
-        // Reload logs immediately
-        loadDriverSummary();
-      } catch (err) {
-        status.className = 'p-3.5 rounded-xl text-xs font-bold bg-red-950/80 text-red-200 border border-red-500/50 block';
-        status.innerText = err.message || 'Error recording intake';
-      } finally {
-        btn.disabled = false;
-        btn.innerText = 'Submit Milk Record';
-      }
-    }
-
-   // Load All Collections for Summary Log (Scoped to logged-in Driver)
+// Cleaned up daily summary loader in driver.html
 async function loadDriverSummary() {
   const tbody = document.getElementById('summary-table-body');
   const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
-  const userStr = localStorage.getItem('kinco_user');
-  
-  let driverId = '';
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr);
-      driverId = user.id || user.user_id || user.sub || '';
-    } catch (e) {}
-  }
 
   try {
-    // Call driver summary endpoint with explicit driver_id query string fallback
-    const res = await fetch(`/api/collections/driver-summary?driver_id=${encodeURIComponent(driverId)}`, {
+    const res = await fetch('/api/collections/driver-summary', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    if (!res.ok) {
-      // Fallback try to /api/collections/summary if route alias is configured
-      const retryRes = await fetch(`/api/collections/summary?driver_id=${encodeURIComponent(driverId)}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!retryRes.ok) throw new Error('Failed to load collections summary');
-      var data = await retryRes.json();
-    } else {
-      var data = await res.json();
-    }
+    if (!res.ok) throw new Error('Failed to load collections summary');
 
-    rawCollectionsCache = data.recentCollections || data.collections || [];
+    const data = await res.json();
+    rawCollectionsCache = data.recentCollections || [];
 
-    // Update overall today metrics
     if (data.totalLiters !== undefined) {
-      const totalLiters = Number(data.totalLiters || 0);
-      const totalPickups = Number(data.totalPickups || 0);
-
-      const litersElem = document.getElementById('metric-today-liters');
-      const pickupsElem = document.getElementById('metric-today-pickups');
-
-      if (litersElem) {
-        litersElem.innerHTML = `${totalLiters.toFixed(1)} <span class="text-xs font-normal text-slate-400">L</span>`;
-      }
-      if (pickupsElem) {
-        pickupsElem.innerHTML = `${totalPickups} <span class="text-xs font-normal text-slate-400">Farmers</span>`;
-      }
+      document.getElementById('metric-today-liters').innerHTML = `${Number(data.totalLiters).toFixed(1)} <span class="text-xs font-normal text-slate-400">L</span>`;
+      document.getElementById('metric-today-pickups').innerHTML = `${data.totalPickups} <span class="text-xs font-normal text-slate-400">Farmers</span>`;
     }
 
     applyLogFilters();
   } catch (err) {
-    console.error('Driver summary load error:', err);
+    console.error('Summary load error:', err);
     if (tbody) {
       tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-red-400 font-bold">Error loading summary data</td></tr>`;
     }
