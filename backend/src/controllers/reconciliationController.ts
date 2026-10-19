@@ -17,11 +17,10 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
       });
     }
 
-    // Force exact 2 decimal places precision
     const totalStationLiters = Math.round(parsedStationLiters * 100) / 100;
     const targetDate = collection_date || new Date().toISOString().split('T')[0];
 
-    // Query field collection total for driver on target date
+    // 1. Fetch collection sum for the driver on target date
     const { data: collections, error: colError } = await supabase
       .from('collections')
       .select('volume_liters, collected_at')
@@ -37,30 +36,33 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     const rawDriverSum = matchingCollections.reduce((acc, c) => acc + Number(c.volume_liters || 0), 0);
     const totalDriverLiters = Math.round(rawDriverSum * 100) / 100;
 
-    // Variance calculation (Station - Driver)
     const rawVariance = totalStationLiters - totalDriverLiters;
     const varianceLiters = Math.round(rawVariance * 100) / 100;
     const isFlagged = Math.abs(varianceLiters) > 0.5;
 
-    // Save entry into reconciliations table
+    // 2. Direct insert into reconciliations table
     const { data: reconData, error: reconError } = await supabase
       .from('reconciliations')
-      .insert([{
-        driver_id,
-        collection_date: targetDate,
-        total_driver_liters: totalDriverLiters,
-        total_station_liters: totalStationLiters,
-        variance_liters: varianceLiters,
-        status: isFlagged ? 'VARIANCE_FLAGGED' : 'MATCHED',
-        clerk_notes: clerk_notes || '',
-        clerk_id: user?.id || null,
-        created_at: new Date().toISOString()
-      }])
+      .insert([
+        {
+          driver_id,
+          collection_date: targetDate,
+          total_driver_liters: totalDriverLiters,
+          total_station_liters: totalStationLiters,
+          variance_liters: varianceLiters,
+          status: isFlagged ? 'VARIANCE_FLAGGED' : 'MATCHED',
+          clerk_notes: clerk_notes || '',
+          clerk_id: user?.id || null
+        }
+      ])
       .select()
       .single();
 
     if (reconError) {
-      console.warn('Reconciliation store notice:', reconError.message);
+      console.error('CRITICAL: Supabase reconciliation insert failed:', reconError);
+      return res.status(500).json({ 
+        message: `Failed to store reconciliation record: ${reconError.message}` 
+      });
     }
 
     return res.status(200).json({
@@ -72,7 +74,7 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
         variance_liters: varianceLiters,
         status: isFlagged ? 'VARIANCE_FLAGGED' : 'MATCHED'
       },
-      reconciliation: reconData || {}
+      reconciliation: reconData
     });
 
   } catch (err: any) {
