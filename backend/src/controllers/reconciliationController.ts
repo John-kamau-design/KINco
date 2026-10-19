@@ -1,21 +1,15 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 
-// Helper to validate UUID format strictly
-const isValidUUID = (id: any) => {
-  if (!id || typeof id !== 'string') return false;
-  const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return regex.test(id);
-};
-
 export const processOffloadReconciliation = async (req: Request, res: Response) => {
   try {
     const { driver_id, collection_date, station_liters, clerk_notes } = req.body;
     const user = (req as any).user;
 
     const parsedStationLiters = parseFloat(station_liters);
+    const parsedDriverId = parseInt(driver_id, 10);
 
-    if (!driver_id || isNaN(parsedStationLiters) || parsedStationLiters < 0) {
+    if (!driver_id || isNaN(parsedDriverId) || isNaN(parsedStationLiters) || parsedStationLiters < 0) {
       return res.status(400).json({ 
         message: 'Valid driver ID and non-negative station volume (in liters) are required.' 
       });
@@ -24,15 +18,11 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     const totalStationLiters = Math.round(parsedStationLiters * 100) / 100;
     const targetDate = collection_date || new Date().toISOString().split('T')[0];
 
-    // Sanitize driver_id: If your DB uses integer IDs (e.g. "6"), convert or handle accordingly, 
-    // otherwise ensure it's a valid UUID if the column is uuid type.
-    const sanitizedDriverId = isValidUUID(driver_id) ? driver_id : String(driver_id);
-
     // 1. Fetch collection sum for the driver on target date
     const { data: collections, error: colError } = await supabase
       .from('collections')
       .select('volume_liters, collected_at')
-      .eq('driver_id', sanitizedDriverId);
+      .eq('driver_id', parsedDriverId);
 
     if (colError) throw colError;
 
@@ -48,18 +38,17 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     const fallbackVariance = Math.round(rawVariance * 100) / 100;
     const isFlagged = Math.abs(fallbackVariance) > 0.5;
 
-    // Sanitize clerk_id: must be valid UUID or null
-    const validClerkId = user?.id && isValidUUID(String(user.id)) ? user.id : null;
+    const parsedClerkId = user?.id ? parseInt(user.id, 10) : null;
 
     // 2. Insert into reconciliations table (Omit variance_liters as it's database-generated)
     const insertPayload: any = {
-      driver_id: sanitizedDriverId,
+      driver_id: parsedDriverId,
       collection_date: targetDate,
       total_driver_liters: totalDriverLiters,
       total_station_liters: totalStationLiters,
       status: isFlagged ? 'VARIANCE_FLAGGED' : 'MATCHED',
       clerk_notes: clerk_notes || '',
-      clerk_id: validClerkId
+      clerk_id: !isNaN(parsedClerkId!) ? parsedClerkId : null
     };
 
     const { data: reconData, error: reconError } = await supabase
@@ -148,7 +137,7 @@ export const getReconciliationHistory = async (req: Request, res: Response) => {
 
     const enrichedReconciliations = (data || []).map((item: any) => {
       const matchedUser = item.users || userMap[item.driver_id] || {};
-      const driverName = matchedUser.full_name || matchedUser.national_id || matchedUser.phone_number || matchedUser.email || `Driver (${String(item.driver_id || '').substring(0, 8)})`;
+      const driverName = matchedUser.full_name || matchedUser.national_id || matchedUser.phone_number || matchedUser.email || `Driver (${item.driver_id})`;
 
       return {
         ...item,
