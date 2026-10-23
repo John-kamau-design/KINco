@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KINco - Farmer Payouts Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans min-h-screen">
+
+  <!-- Header / Navigation -->
+  <header class="bg-emerald-800 text-white shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-xl font-bold tracking-wide">KINco Dairy Management | Payout Dashboard</h1>
+      <a href="/dashboard.html" class="text-emerald-200 hover:text-white text-sm font-medium">← Back to Dashboard</a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+
+    <!-- Action Bar: Generate Payout Cycle -->
+    <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">Generate Payout Cycle</h2>
+      <form id="payoutForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+          <input type="date" id="startDate" required class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+          <input type="date" id="endDate" required class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <button type="submit" id="generateBtn" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors shadow">
+            Generate Payouts (45 KES/L)
+          </button>
+        </div>
+      </form>
+      <div id="alertBox" class="mt-4 hidden p-3 rounded-lg text-sm"></div>
+    </section>
+
+    <!-- Payout Ledger History Section -->
+    <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-lg font-semibold text-gray-800">Payout Ledger History</h2>
+        <button onclick="loadPayoutHistory()" class="text-sm text-emerald-700 hover:text-emerald-900 font-medium">Refresh Data</button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wider">
+              <th class="py-3 px-4">Farmer / Driver</th>
+              <th class="py-3 px-4">Period</th>
+              <th class="py-3 px-4 text-right">Total Liters</th>
+              <th class="py-3 px-4 text-right">Rate</th>
+              <th class="py-3 px-4 text-right">Gross Pay (KES)</th>
+              <th class="py-3 px-4 text-center">Status</th>
+              <th class="py-3 px-4 text-center">Date Generated</th>
+            </tr>
+          </thead>
+          <tbody id="payoutTableBody" class="divide-y divide-gray-200 text-sm text-gray-700">
+            <tr>
+              <td colspan="7" class="text-center py-6 text-gray-400">Loading payout statements...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/login.html';
+    }
+
+    // Load history on startup
+    document.addEventListener('DOMContentLoaded', loadPayoutHistory);
+
+    // Handle Payout Generation Form
+    document.getElementById('payoutForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const start_date = document.getElementById('startDate').value;
+      const end_date = document.getElementById('endDate').value;
+      const btn = document.getElementById('generateBtn');
+      const alertBox = document.getElementById('alertBox');
+
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+      alertBox.classList.add('hidden');
+
+      try {
+        const response = await fetch('/api/payments/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ start_date, end_date })
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Failed to generate payout cycle');
+
+        showAlert(result.message || 'Payouts generated successfully!', 'success');
+        loadPayoutHistory();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate Payouts (45 KES/L)';
+      }
+    });
+
+    async function loadPayoutHistory() {
+      try {
+        const response = await fetch('/api/payments/history', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Failed to fetch history');
+
+        const tbody = document.getElementById('payoutTableBody');
+        tbody.innerHTML = '';
+
+        const payouts = result.payouts || [];
+        if (payouts.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-gray-400">No payout records found.</td></tr>`;
+          return;
+        }
+
+        payouts.forEach(p => {
+          const farmerName = p.users?.full_name || p.users?.phone_number || `Farmer ID: ${p.farmer_id}`;
+          const formattedGross = Number(p.gross_amount).toLocaleString('en-US', { minimumFractionDigits: 2 });
+          const formattedLiters = Number(p.total_liters).toLocaleString('en-US', { minimumFractionDigits: 2 });
+          const formattedDate = new Date(p.created_at).toLocaleDateString();
+
+          const statusBadge = p.status === 'PAID' 
+            ? '<span class="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-semibold">PAID</span>'
+            : p.status === 'APPROVED'
+            ? '<span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-xs font-semibold">APPROVED</span>'
+            : '<span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-xs font-semibold">PENDING</span>';
+
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-gray-50';
+          tr.innerHTML = `
+            <td class="py-3 px-4 font-medium text-gray-900">${farmerName}</td>
+            <td class="py-3 px-4 text-xs text-gray-500">${p.start_date} to ${p.end_date}</td>
+            <td class="py-3 px-4 text-right">${formattedLiters} L</td>
+            <td class="py-3 px-4 text-right">45.00</td>
+            <td class="py-3 px-4 text-right font-semibold text-emerald-700">${formattedGross}</td>
+            <td class="py-3 px-4 text-center">${statusBadge}</td>
+            <td class="py-3 px-4 text-center text-xs text-gray-500">${formattedDate}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      } catch (err) {
+        console.error('Error loading payout history:', err);
+      }
+    }
+
+    function showAlert(message, type) {
+      const alertBox = document.getElementById('alertBox');
+      alertBox.textContent = message;
+      alertBox.className = `mt-4 p-3 rounded-lg text-sm ${type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`;
+      alertBox.classList.remove('hidden');
+    }
+  </script>
+
+</body>
+</html>
