@@ -9,6 +9,7 @@ import milkRoutes from './routes/milk';
 import apiRoutes from './routes/api';
 import collectionRoutes from './routes/collection';
 import reconciliationRoutes from './routes/reconciliation';
+import paymentRoutes from './routes/paymentRoutes';
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use('/api/collections', collectionRoutes); // Added plural support for clerk
 app.use('/api/collection', collectionRoutes);
 app.use('/api/reconciliation', reconciliationRoutes);
 app.use('/api', apiRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // 3. Fallback 404 handler specifically for unhandled /api requests
 app.use('/api/*', (_req: Request, res: Response) => {
