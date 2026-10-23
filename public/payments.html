@@ -6,62 +6,86 @@
   <title>KINco - Farmer Payouts Management</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 font-sans min-h-screen">
+<body class="bg-[#0B132B] text-slate-100 min-h-screen font-sans antialiased">
 
-  <!-- Header / Navigation -->
-  <header class="bg-emerald-800 text-white shadow-md">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-      <h1 class="text-xl font-bold tracking-wide">KINco Dairy Management | Payout Dashboard</h1>
-      <a href="/dashboard.html" class="text-emerald-200 hover:text-white text-sm font-medium">← Back to Dashboard</a>
+  <!-- TOP NAVBAR -->
+  <header class="bg-[#0F172A] border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center font-bold text-slate-900 text-xl shadow">
+        K
+      </div>
+      <div>
+        <h1 class="text-xl font-bold text-emerald-400">KINCo Farmer Payout Engine</h1>
+        <p class="text-xs text-slate-400">Ledgering & Fixed Rate Disbursement (45 KES/L)</p>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-3">
+      <a href="/admin.html" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition">
+        &larr; Admin Portal
+      </a>
+      <a href="/clerk.html" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition">
+        Clerk Station &rarr;
+      </a>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+  <main class="max-w-6xl mx-auto p-6 md:p-8 space-y-8">
 
-    <!-- Action Bar: Generate Payout Cycle -->
-    <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h2 class="text-lg font-semibold text-gray-800 mb-4">Generate Payout Cycle</h2>
-      <form id="payoutForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+    <!-- ACTION CARD: GENERATE PAYOUT CYCLE -->
+    <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
+      <div class="border-b border-slate-700/60 pb-4">
+        <h2 class="text-2xl font-bold text-emerald-400">Generate Payout Cycle</h2>
+        <p class="text-xs text-slate-400 mt-1">Select date range to calculate farmer earnings at a fixed rate of 45 KES/Litre.</p>
+      </div>
+
+      <form id="payoutForm" class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-          <input type="date" id="startDate" required class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">START DATE</label>
+          <input type="date" id="startDate" required class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-          <input type="date" id="endDate" required class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">END DATE</label>
+          <input type="date" id="endDate" required class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
         </div>
         <div>
-          <button type="submit" id="generateBtn" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors shadow">
-            Generate Payouts (45 KES/L)
+          <button type="submit" id="generateBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-extrabold py-3.5 rounded-lg transition text-sm shadow-lg">
+            Calculate Payouts (45 KES/L)
           </button>
         </div>
       </form>
-      <div id="alertBox" class="mt-4 hidden p-3 rounded-lg text-sm"></div>
+
+      <div id="alertBox" class="hidden text-xs font-bold p-3 rounded-lg"></div>
     </section>
 
-    <!-- Payout Ledger History Section -->
-    <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-lg font-semibold text-gray-800">Payout Ledger History</h2>
-        <button onclick="loadPayoutHistory()" class="text-sm text-emerald-700 hover:text-emerald-900 font-medium">Refresh Data</button>
+    <!-- PAYOUT LEDGER TABLE CARD -->
+    <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700/60 pb-4 gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-emerald-400">Payout Ledger Statements</h2>
+          <p class="text-xs text-slate-400 mt-1">Historical log of all generated farmer payout statements.</p>
+        </div>
+        <button onclick="loadPayoutHistory()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2.5 rounded-lg transition font-semibold border border-slate-600">
+          Refresh Ledger
+        </button>
       </div>
 
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wider">
-              <th class="py-3 px-4">Farmer / Driver</th>
-              <th class="py-3 px-4">Period</th>
-              <th class="py-3 px-4 text-right">Total Liters</th>
-              <th class="py-3 px-4 text-right">Rate</th>
-              <th class="py-3 px-4 text-right">Gross Pay (KES)</th>
-              <th class="py-3 px-4 text-center">Status</th>
-              <th class="py-3 px-4 text-center">Date Generated</th>
+            <tr class="border-b border-slate-700/80 text-slate-400 text-xs uppercase tracking-wider bg-[#0B132B]/50">
+              <th class="py-3.5 px-4">Farmer / Driver ID</th>
+              <th class="py-3.5 px-4">Period</th>
+              <th class="py-3.5 px-4 text-right">Total Liters</th>
+              <th class="py-3.5 px-4 text-right">Rate</th>
+              <th class="py-3.5 px-4 text-right">Gross Pay (KES)</th>
+              <th class="py-3.5 px-4 text-center">Status</th>
+              <th class="py-3.5 px-4 text-center">Generated At</th>
             </tr>
           </thead>
-          <tbody id="payoutTableBody" class="divide-y divide-gray-200 text-sm text-gray-700">
+          <tbody id="payoutTableBody" class="divide-y divide-slate-700/50 text-sm text-slate-200">
             <tr>
-              <td colspan="7" class="text-center py-6 text-gray-400">Loading payout statements...</td>
+              <td colspan="7" class="py-8 text-center text-slate-400 animate-pulse">Loading payout statements...</td>
             </tr>
           </tbody>
         </table>
@@ -71,25 +95,28 @@
   </main>
 
   <script>
-    const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = '/login.html';
+    function getToken() {
+      return localStorage.getItem('kinco_token') || localStorage.getItem('token');
     }
 
-    // Load history on startup
-    document.addEventListener('DOMContentLoaded', loadPayoutHistory);
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = getToken();
+      if (!token) {
+        window.location.href = '/index.html';
+        return;
+      }
+      loadPayoutHistory();
+    });
 
-    // Handle Payout Generation Form
     document.getElementById('payoutForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const start_date = document.getElementById('startDate').value;
       const end_date = document.getElementById('endDate').value;
       const btn = document.getElementById('generateBtn');
-      const alertBox = document.getElementById('alertBox');
+      const token = getToken();
 
       btn.disabled = true;
-      btn.textContent = 'Processing...';
-      alertBox.classList.add('hidden');
+      btn.textContent = 'Calculating Payouts...';
 
       try {
         const response = await fetch('/api/payments/generate', {
@@ -102,71 +129,76 @@
         });
 
         const result = await response.json();
-        if (!response.ok) throw new Error(result.message || 'Failed to generate payout cycle');
+        if (!response.ok) throw new Error(result.message || 'Failed to generate payouts');
 
-        showAlert(result.message || 'Payouts generated successfully!', 'success');
-        loadPayoutHistory();
+        showAlert(result.message || 'Payouts calculated successfully!', 'success');
+        await loadPayoutHistory();
       } catch (err) {
         showAlert(err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Generate Payouts (45 KES/L)';
+        btn.textContent = 'Calculate Payouts (45 KES/L)';
       }
     });
 
     async function loadPayoutHistory() {
+      const tbody = document.getElementById('payoutTableBody');
+      const token = getToken();
+
+      tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 animate-pulse">Loading payout statements...</td></tr>`;
+
       try {
         const response = await fetch('/api/payments/history', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || 'Failed to fetch history');
 
-        const tbody = document.getElementById('payoutTableBody');
-        tbody.innerHTML = '';
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Failed to fetch payout history');
 
         const payouts = result.payouts || [];
         if (payouts.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-gray-400">No payout records found.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No payout statements generated yet.</td></tr>`;
           return;
         }
 
-        payouts.forEach(p => {
-          const farmerName = p.users?.full_name || p.users?.phone_number || `Farmer ID: ${p.farmer_id}`;
+        tbody.innerHTML = payouts.map(p => {
+          const farmerName = p.users?.full_name || p.users?.phone_number || `Farmer (${p.farmer_id})`;
           const formattedGross = Number(p.gross_amount).toLocaleString('en-US', { minimumFractionDigits: 2 });
           const formattedLiters = Number(p.total_liters).toLocaleString('en-US', { minimumFractionDigits: 2 });
           const formattedDate = new Date(p.created_at).toLocaleDateString();
 
           const statusBadge = p.status === 'PAID' 
-            ? '<span class="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-semibold">PAID</span>'
+            ? '<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 px-2.5 py-1 rounded-full text-xs font-bold">PAID</span>'
             : p.status === 'APPROVED'
-            ? '<span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-xs font-semibold">APPROVED</span>'
-            : '<span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-xs font-semibold">PENDING</span>';
+            ? '<span class="bg-blue-950/80 text-blue-300 border border-blue-500/50 px-2.5 py-1 rounded-full text-xs font-bold">APPROVED</span>'
+            : '<span class="bg-amber-950/80 text-amber-300 border border-amber-600/50 px-2.5 py-1 rounded-full text-xs font-bold">PENDING</span>';
 
-          const tr = document.createElement('tr');
-          tr.className = 'hover:bg-gray-50';
-          tr.innerHTML = `
-            <td class="py-3 px-4 font-medium text-gray-900">${farmerName}</td>
-            <td class="py-3 px-4 text-xs text-gray-500">${p.start_date} to ${p.end_date}</td>
-            <td class="py-3 px-4 text-right">${formattedLiters} L</td>
-            <td class="py-3 px-4 text-right">45.00</td>
-            <td class="py-3 px-4 text-right font-semibold text-emerald-700">${formattedGross}</td>
-            <td class="py-3 px-4 text-center">${statusBadge}</td>
-            <td class="py-3 px-4 text-center text-xs text-gray-500">${formattedDate}</td>
+          return `
+            <tr class="hover:bg-slate-700/30 transition">
+              <td class="py-3.5 px-4 font-semibold text-slate-100">${farmerName}</td>
+              <td class="py-3.5 px-4 text-xs font-mono text-slate-400">${p.start_date} to ${p.end_date}</td>
+              <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-200">${formattedLiters} L</td>
+              <td class="py-3.5 px-4 text-right font-mono text-slate-400">45.00</td>
+              <td class="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-400">${formattedGross}</td>
+              <td class="py-3.5 px-4 text-center">${statusBadge}</td>
+              <td class="py-3.5 px-4 text-center text-xs text-slate-400">${formattedDate}</td>
+            </tr>
           `;
-          tbody.appendChild(tr);
-        });
+        }).join('');
 
       } catch (err) {
-        console.error('Error loading payout history:', err);
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-red-400 font-semibold">Error loading ledger. Please refresh.</td></tr>`;
       }
     }
 
     function showAlert(message, type) {
       const alertBox = document.getElementById('alertBox');
       alertBox.textContent = message;
-      alertBox.className = `mt-4 p-3 rounded-lg text-sm ${type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`;
-      alertBox.classList.remove('hidden');
+      alertBox.className = `mt-4 text-xs font-bold p-3 rounded-lg block ${
+        type === 'success' 
+          ? 'bg-emerald-900/50 border border-emerald-500 text-emerald-300' 
+          : 'bg-red-900/50 border border-red-500 text-red-300'
+      }`;
     }
   </script>
 
