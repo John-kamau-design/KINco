@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KINco - Farmer Payouts Management</title>
+  <title>KINco - Farmer Payout Hub</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-[#0B132B] text-slate-100 min-h-screen font-sans antialiased">
@@ -15,8 +15,8 @@
         K
       </div>
       <div>
-        <h1 class="text-xl font-bold text-emerald-400">KINCo Farmer Payout Engine</h1>
-        <p class="text-xs text-slate-400">Individual & Batch Disbursement (45 KES/L)</p>
+        <h1 class="text-xl font-bold text-emerald-400">KINCo Farmer Payout Hub</h1>
+        <p class="text-xs text-slate-400">Individual & Batch Disbursement (Fixed 45 KES/L)</p>
       </div>
     </div>
 
@@ -30,180 +30,304 @@
     </div>
   </header>
 
+  <!-- NAVIGATION TABS -->
+  <div class="max-w-6xl mx-auto px-6 pt-6">
+    <div class="flex border-b border-slate-800 space-x-2">
+      <button id="tab-btn-process" onclick="switchTab('process')" 
+              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-[#1C2541]/80">
+        Farmer Intake & Payouts
+      </button>
+      <button id="tab-btn-logs" onclick="switchTab('logs')" 
+              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1C2541]/40">
+        Completed Payout Logs
+      </button>
+    </div>
+  </div>
+
   <main class="max-w-6xl mx-auto p-6 md:p-8 space-y-8">
 
-    <!-- ACTION CARD: GENERATE PAYOUT CYCLE -->
-    <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
-      <div class="border-b border-slate-700/60 pb-4">
-        <h2 class="text-2xl font-bold text-emerald-400">Calculate Farmer Payouts</h2>
-        <p class="text-xs text-slate-400 mt-1">Select date range and optionally filter by individual Farmer Code (KLF / AKLS). Only unbilled milk records will be processed.</p>
-      </div>
+    <!-- TAB 1: FARMER INTAKE & PAYOUT PROCESSING -->
+    <div id="view-process" class="space-y-6">
+      <!-- FARMER SEARCH CARD -->
+      <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
+        <div class="border-b border-slate-700/60 pb-4">
+          <h2 class="text-2xl font-bold text-emerald-400">Select Farmer to Pay</h2>
+          <p class="text-xs text-slate-400 mt-1">Enter Farmer Code (KLF / AKLS) or ID to view unbilled milk logs and disburse funds.</p>
+        </div>
 
-      <form id="payoutForm" class="space-y-5">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div>
-            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">START DATE</label>
-            <input type="date" id="startDate" required class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+        <div class="flex flex-col md:flex-row gap-4 items-end">
+          <div class="flex-1">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">FARMER CODE OR ID</label>
+            <input type="text" id="searchFarmerCode" placeholder="e.g. AKLS0001 or KLF0001" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 font-mono uppercase">
           </div>
+          <button onclick="fetchFarmerSummary()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-extrabold px-6 py-3.5 rounded-lg transition text-sm shadow-lg shrink-0">
+            Search Intake Records
+          </button>
+        </div>
+
+        <div id="statusAlert" class="hidden text-xs font-bold p-3 rounded-lg"></div>
+      </section>
+
+      <!-- SELECTED FARMER DETAILS & INTAKE TABLE -->
+      <div id="farmerDetailsCard" class="hidden bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700/60 pb-4 gap-4">
           <div>
-            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">END DATE</label>
-            <input type="date" id="endDate" required class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+            <h3 id="displayFarmerName" class="text-2xl font-bold text-white">---</h3>
+            <p id="displayFarmerCode" class="text-xs font-mono text-emerald-400 mt-1">Code: ---</p>
           </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">FARMER CODE (OPTIONAL)</label>
-            <input type="text" id="farmerCode" placeholder="e.g. KLF0001 or AKLS0001" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 font-mono uppercase">
+          <div class="bg-[#0B132B] border border-slate-700 p-4 rounded-xl text-right">
+            <p class="text-xs text-slate-400 font-medium uppercase">Pending Unbilled Earnings</p>
+            <p id="displayUnpaidGross" class="text-2xl font-black text-emerald-400 mt-0.5">0.00 KES</p>
+            <p id="displayUnpaidLiters" class="text-xs text-slate-300 font-mono">0.00 L unbilled</p>
           </div>
         </div>
 
-        <button type="submit" id="generateBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-extrabold py-3.5 rounded-lg transition text-sm shadow-lg">
-          Calculate Unbilled Payouts (45 KES/L)
-        </button>
-      </form>
-
-      <div id="alertBox" class="hidden text-xs font-bold p-3 rounded-lg"></div>
-    </section>
-
-    <!-- PAYOUT LEDGER TABLE CARD -->
-    <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700/60 pb-4 gap-4">
-        <div>
-          <h2 class="text-2xl font-bold text-emerald-400">Payout Ledger Statements</h2>
-          <p class="text-xs text-slate-400 mt-1">Historical log of all generated farmer payout statements.</p>
+        <!-- MILK INTAKE HISTORY TABLE -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-700/80 text-slate-400 text-xs uppercase tracking-wider bg-[#0B132B]/50">
+                <th class="py-3.5 px-4">Intake ID</th>
+                <th class="py-3.5 px-4">Date & Time</th>
+                <th class="py-3.5 px-4 text-right">Volume (L)</th>
+                <th class="py-3.5 px-4 text-right">Rate</th>
+                <th class="py-3.5 px-4 text-right">Gross (KES)</th>
+                <th class="py-3.5 px-4 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody id="farmerIntakeTableBody" class="divide-y divide-slate-700/50 text-sm text-slate-200">
+              <tr>
+                <td colspan="6" class="py-6 text-center text-slate-500">Search a farmer code to display intake records...</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <button onclick="loadPayoutHistory()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2.5 rounded-lg transition font-semibold border border-slate-600">
-          Refresh Ledger
-        </button>
-      </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="border-b border-slate-700/80 text-slate-400 text-xs uppercase tracking-wider bg-[#0B132B]/50">
-              <th class="py-3.5 px-4">Farmer / Driver ID</th>
-              <th class="py-3.5 px-4">Period</th>
-              <th class="py-3.5 px-4 text-right">Total Liters</th>
-              <th class="py-3.5 px-4 text-right">Rate</th>
-              <th class="py-3.5 px-4 text-right">Gross Pay (KES)</th>
-              <th class="py-3.5 px-4 text-center">Status</th>
-              <th class="py-3.5 px-4 text-center">Generated At</th>
-            </tr>
-          </thead>
-          <tbody id="payoutTableBody" class="divide-y divide-slate-700/50 text-sm text-slate-200">
-            <tr>
-              <td colspan="7" class="py-8 text-center text-slate-400 animate-pulse">Loading payout statements...</td>
-            </tr>
-          </tbody>
-        </table>
+        <!-- PROCESS PAYOUT ACTION -->
+        <div class="pt-4 border-t border-slate-700/60 flex justify-end">
+          <button id="processPayoutBtn" onclick="processSelectedFarmerPayout()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-extrabold px-8 py-3.5 rounded-lg transition text-sm shadow-lg">
+            Process Payout for Farmer (45 KES/L)
+          </button>
+        </div>
       </div>
-    </section>
+    </div>
+
+    <!-- TAB 2: COMPLETED PAYOUT LOGS -->
+    <div id="view-logs" class="hidden space-y-6">
+      <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700/60 pb-4 gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-emerald-400">Completed Payout Ledger</h2>
+            <p class="text-xs text-slate-400 mt-1">Audit log of all disbursed farmer payout statements.</p>
+          </div>
+          <button onclick="loadPayoutHistory()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2.5 rounded-lg transition font-semibold border border-slate-600">
+            Refresh Ledger
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-700/80 text-slate-400 text-xs uppercase tracking-wider bg-[#0B132B]/50">
+                <th class="py-3.5 px-4">Farmer Details</th>
+                <th class="py-3.5 px-4">Period</th>
+                <th class="py-3.5 px-4 text-right">Total Liters</th>
+                <th class="py-3.5 px-4 text-right">Gross Pay (KES)</th>
+                <th class="py-3.5 px-4 text-center">Status</th>
+                <th class="py-3.5 px-4 text-center">Paid At</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody" class="divide-y divide-slate-700/50 text-sm text-slate-200">
+              <tr>
+                <td colspan="6" class="py-8 text-center text-slate-400 animate-pulse">Loading completed payout logs...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
 
   </main>
 
   <script>
+    let activeFarmerData = null;
+
     function getToken() {
       return localStorage.getItem('kinco_token') || localStorage.getItem('token');
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function switchTab(tabName) {
+      const viewProcess = document.getElementById('view-process');
+      const viewLogs = document.getElementById('view-logs');
+      const btnProcess = document.getElementById('tab-btn-process');
+      const btnLogs = document.getElementById('tab-btn-logs');
+
+      if (tabName === 'logs') {
+        viewProcess.classList.add('hidden');
+        viewLogs.classList.remove('hidden');
+        btnLogs.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-[#1C2541]/80';
+        btnProcess.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1C2541]/40';
+        loadPayoutHistory();
+      } else {
+        viewLogs.classList.add('hidden');
+        viewProcess.classList.remove('hidden');
+        btnProcess.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-[#1C2541]/80';
+        btnLogs.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1C2541]/40';
+      }
+    }
+
+    async function fetchFarmerSummary() {
+      const code = document.getElementById('searchFarmerCode').value.trim();
+      const statusAlert = document.getElementById('statusAlert');
+      const card = document.getElementById('farmerDetailsCard');
       const token = getToken();
-      if (!token) {
-        window.location.href = '/index.html';
+
+      if (!code) {
+        showAlert('Please enter a farmer code or ID first.', 'error');
         return;
       }
-      loadPayoutHistory();
-    });
 
-    document.getElementById('payoutForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const start_date = document.getElementById('startDate').value;
-      const end_date = document.getElementById('endDate').value;
-      const farmer_code = document.getElementById('farmerCode').value.trim();
-      const btn = document.getElementById('generateBtn');
-      const alertBox = document.getElementById('alertBox');
+      statusAlert.classList.add('hidden');
+
+      try {
+        const res = await fetch(`/api/payments/farmer-summary/${encodeURIComponent(code)}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Farmer not found.');
+
+        activeFarmerData = data;
+        renderFarmerDetails(data);
+        card.classList.remove('hidden');
+      } catch (err) {
+        card.classList.add('hidden');
+        showAlert(err.message, 'error');
+      }
+    }
+
+    function renderFarmerDetails(data) {
+      document.getElementById('displayFarmerName').textContent = data.farmer.full_name;
+      document.getElementById('displayFarmerCode').textContent = `Code: ${data.farmer.farmer_code || 'N/A'} | Phone: ${data.farmer.phone_number || 'N/A'}`;
+      document.getElementById('displayUnpaidGross').textContent = `KES ${data.estimatedPayoutKES.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+      document.getElementById('displayUnpaidLiters').textContent = `${data.totalUnpaidLiters.toLocaleString()} L unbilled`;
+
+      const tbody = document.getElementById('farmerIntakeTableBody');
+      const collections = data.collections || [];
+
+      if (collections.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500">No milk intake records found for this farmer.</td></tr>`;
+        document.getElementById('processPayoutBtn').disabled = true;
+        return;
+      }
+
+      document.getElementById('processPayoutBtn').disabled = data.totalUnpaidLiters <= 0;
+
+      tbody.innerHTML = collections.map(c => {
+        const vol = Number(c.volume_liters || 0);
+        const gross = Math.round(vol * 45 * 100) / 100;
+        const isBilled = c.payout_status === 'BILLED';
+
+        const badge = isBilled
+          ? '<span class="bg-slate-800 text-slate-400 border border-slate-700 px-2.5 py-1 rounded-full text-xs font-bold">BILLED</span>'
+          : '<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 px-2.5 py-1 rounded-full text-xs font-bold">UNPAID</span>';
+
+        return `
+          <tr class="hover:bg-slate-700/30 transition">
+            <td class="py-3 px-4 font-mono text-xs text-slate-400">#${c.id}</td>
+            <td class="py-3 px-4 text-xs text-slate-300">${new Date(c.collected_at).toLocaleString()}</td>
+            <td class="py-3 px-4 text-right font-mono font-bold text-slate-200">${vol.toFixed(1)} L</td>
+            <td class="py-3 px-4 text-right font-mono text-slate-400">45.00</td>
+            <td class="py-3 px-4 text-right font-mono font-extrabold text-emerald-400">${gross.toFixed(2)}</td>
+            <td class="py-3 px-4 text-center">${badge}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function processSelectedFarmerPayout() {
+      if (!activeFarmerData || !activeFarmerData.farmer) return;
+
+      const btn = document.getElementById('processPayoutBtn');
       const token = getToken();
 
       btn.disabled = true;
-      btn.textContent = 'Calculating Payouts...';
-      alertBox.classList.add('hidden');
+      btn.textContent = 'Processing Payout...';
 
       try {
-        const response = await fetch('/api/payments/generate', {
+        const res = await fetch('/api/payments/process-farmer-payout', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ start_date, end_date, farmer_code: farmer_code || undefined })
+          body: JSON.stringify({
+            farmer_id: activeFarmerData.farmer.id
+          })
         });
 
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || 'Failed to generate payouts');
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || 'Failed to process payout');
 
-        showAlert(result.message || 'Payouts calculated successfully!', 'success');
-        document.getElementById('farmerCode').value = '';
-        await loadPayoutHistory();
+        showAlert(result.message, 'success');
+        await fetchFarmerSummary(); // Refresh farmer intake state
       } catch (err) {
         showAlert(err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Calculate Unbilled Payouts (45 KES/L)';
+        btn.textContent = 'Process Payout for Farmer (45 KES/L)';
       }
-    });
+    }
 
     async function loadPayoutHistory() {
-      const tbody = document.getElementById('payoutTableBody');
+      const tbody = document.getElementById('logsTableBody');
       const token = getToken();
 
-      tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 animate-pulse">Loading payout statements...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 animate-pulse">Loading completed payout logs...</td></tr>`;
 
       try {
-        const response = await fetch('/api/payments/history', {
+        const res = await fetch('/api/payments/history', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || 'Failed to fetch payout history');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to fetch ledger');
 
-        const payouts = result.payouts || [];
+        const payouts = data.payouts || [];
         if (payouts.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No payout statements generated yet.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">No completed payout logs found.</td></tr>`;
           return;
         }
 
         tbody.innerHTML = payouts.map(p => {
-          const farmerName = p.users?.full_name || p.users?.phone_number || `Farmer (${p.farmer_id})`;
-          const formattedGross = Number(p.gross_amount).toLocaleString('en-US', { minimumFractionDigits: 2 });
-          const formattedLiters = Number(p.total_liters).toLocaleString('en-US', { minimumFractionDigits: 2 });
-          const formattedDate = new Date(p.created_at).toLocaleDateString();
-
-          const statusBadge = p.status === 'PAID' 
-            ? '<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 px-2.5 py-1 rounded-full text-xs font-bold">PAID</span>'
-            : p.status === 'APPROVED'
-            ? '<span class="bg-blue-950/80 text-blue-300 border border-blue-500/50 px-2.5 py-1 rounded-full text-xs font-bold">APPROVED</span>'
-            : '<span class="bg-amber-950/80 text-amber-300 border border-amber-600/50 px-2.5 py-1 rounded-full text-xs font-bold">PENDING</span>';
+          const farmerName = p.users?.full_name || `Farmer (${p.farmer_id})`;
+          const code = p.users?.farmer_code || 'N/A';
+          const gross = Number(p.gross_amount).toLocaleString('en-US', { minimumFractionDigits: 2 });
+          const liters = Number(p.total_liters).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
           return `
             <tr class="hover:bg-slate-700/30 transition">
-              <td class="py-3.5 px-4 font-semibold text-slate-100">${farmerName}</td>
+              <td class="py-3.5 px-4 font-semibold text-slate-100">${farmerName} <span class="text-xs font-mono text-emerald-400">(${code})</span></td>
               <td class="py-3.5 px-4 text-xs font-mono text-slate-400">${p.start_date} to ${p.end_date}</td>
-              <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-200">${formattedLiters} L</td>
-              <td class="py-3.5 px-4 text-right font-mono text-slate-400">45.00</td>
-              <td class="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-400">${formattedGross}</td>
-              <td class="py-3.5 px-4 text-center">${statusBadge}</td>
-              <td class="py-3.5 px-4 text-center text-xs text-slate-400">${formattedDate}</td>
+              <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-200">${liters} L</td>
+              <td class="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-400">${gross}</td>
+              <td class="py-3.5 px-4 text-center">
+                <span class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 px-2.5 py-1 rounded-full text-xs font-bold">PAID</span>
+              </td>
+              <td class="py-3.5 px-4 text-center text-xs text-slate-400">${new Date(p.created_at).toLocaleDateString()}</td>
             </tr>
           `;
         }).join('');
 
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-red-400 font-semibold">Error loading ledger. Please refresh.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-red-400 font-semibold">Error loading completed logs.</td></tr>`;
       }
     }
 
     function showAlert(message, type) {
-      const alertBox = document.getElementById('alertBox');
+      const alertBox = document.getElementById('statusAlert');
       alertBox.textContent = message;
-      alertBox.className = `mt-4 text-xs font-bold p-3 rounded-lg block ${
+      alertBox.className = `text-xs font-bold p-3 rounded-lg block ${
         type === 'success' 
           ? 'bg-emerald-900/50 border border-emerald-500 text-emerald-300' 
           : 'bg-red-900/50 border border-red-500 text-red-300'
