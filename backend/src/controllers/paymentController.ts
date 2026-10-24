@@ -9,24 +9,39 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Start date and end date are required.' });
     }
 
-    let targetFarmerId = farmer_id ? parseInt(farmer_id, 10) : null;
+    let targetFarmerId: number | null = farmer_id ? parseInt(farmer_id, 10) : null;
+    let targetFarmerCode: string | null = farmer_code ? farmer_code.trim().toUpperCase() : null;
 
-    // Optional: Resolve farmer_code to user ID if provided
-    if (!targetFarmerId && farmer_code) {
-      const { data: farmerUser } = await supabase
-        .from('users')
-        .select('id')
-        .or(`farmer_code.eq.${farmer_code.trim().toUpperCase()},id_number.eq.${farmer_code.trim()}`)
+    // 1. Resolve farmer_code to target IDs if farmer_code is provided
+    if (!targetFarmerId && targetFarmerCode) {
+      // First, check the farmers directory table
+      const { data: farmerRecord } = await supabase
+        .from('farmers')
+        .select('id, farmer_code, phone_number, id_number')
+        .ilike('farmer_code', targetFarmerCode)
         .maybeSingle();
 
-      if (farmerUser) {
-        targetFarmerId = farmerUser.id;
+      if (farmerRecord) {
+        targetFarmerId = farmerRecord.id;
       } else {
-        return res.status(404).json({ message: `Farmer with code "${farmer_code}" was not found.` });
+        // Fallback: Check the users table
+        const { data: userRecord } = await supabase
+          .from('users')
+          .select('id')
+          .or(`farmer_code.ilike.${targetFarmerCode},id_number.eq.${targetFarmerCode}`)
+          .maybeSingle();
+
+        if (userRecord) {
+          targetFarmerId = userRecord.id;
+        }
+      }
+
+      if (!targetFarmerId) {
+        return res.status(404).json({ message: `Farmer with code "${targetFarmerCode}" was not found in directory.` });
       }
     }
 
-    // 1. Fetch ONLY UNPAID collections within date range (filtered by specific farmer if requested)
+    // 2. Fetch UNPAID collections within the date range
     let query = supabase
       .from('collections')
       .select('id, driver_id, volume_liters, collected_at')
@@ -44,13 +59,13 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
 
     if (!collections || collections.length === 0) {
       return res.status(404).json({
-        message: targetFarmerId
-          ? 'No unbilled milk collections found for this farmer in the selected period.'
+        message: targetFarmerCode
+          ? `No unbilled milk collections found for farmer ${targetFarmerCode} in the selected period.`
           : 'No unbilled milk collections found for the specified period.'
       });
     }
 
-    // 2. Group unpaid collections by farmer and track associated collection IDs
+    // 3. Group unpaid collections per farmer
     const farmerMap: Record<string, { totalVolume: number; collectionIds: number[] }> = {};
 
     collections.forEach((c: any) => {
@@ -66,13 +81,12 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
 
     const insertedPayouts: any[] = [];
 
-    // 3. Process payout statement and lock collections for each farmer individually
+    // 4. Generate payout ledger records & lock collections as BILLED
     for (const [fIdStr, data] of Object.entries(farmerMap)) {
       const fId = parseInt(fIdStr, 10);
       const roundedLiters = Math.round(data.totalVolume * 100) / 100;
       const grossAmount = Math.round(roundedLiters * 45 * 100) / 100;
 
-      // Insert individual farmer payout record
       const { data: newPayout, error: payoutInsertErr } = await supabase
         .from('farmer_payouts')
         .insert([{
@@ -94,26 +108,17 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
         continue;
       }
 
-      // Mark the corresponding collection records as BILLED to prevent duplicate payouts
       if (newPayout && data.collectionIds.length > 0) {
-        const { error: markBilledErr } = await supabase
+        await supabase
           .from('collections')
           .update({
             payout_id: newPayout.id,
             payout_status: 'BILLED'
           })
           .in('id', data.collectionIds);
-
-        if (markBilledErr) {
-          console.error(`Warning: Failed marking collections as BILLED for payout ${newPayout.id}:`, markBilledErr);
-        }
       }
 
       insertedPayouts.push(newPayout);
-    }
-
-    if (insertedPayouts.length === 0) {
-      return res.status(500).json({ message: 'Failed to generate payout statements.' });
     }
 
     return res.status(200).json({
@@ -139,36 +144,45 @@ export const getPayoutHistory = async (req: Request, res: Response) => {
     if (payoutsError) throw payoutsError;
 
     if (!payouts || payouts.length === 0) {
-      return res.status(200).json({
-        success: true,
-        payouts: []
-      });
+      return res.status(200).json({ success: true, payouts: [] });
     }
 
     const farmerIds = Array.from(new Set(payouts.map((p: any) => p.farmer_id).filter(Boolean)));
-    let userMap: Record<string, any> = {};
+    let farmerMap: Record<string, any> = {};
 
     if (farmerIds.length > 0) {
-      const { data: usersData } = await supabase
-        .from('users')
-        .select('id, full_name, national_id, phone_number, email')
+      // Query both farmers and users table to get full names
+      const { data: farmersData } = await supabase
+        .from('farmers')
+        .select('id, full_name, farmer_code, phone_number')
         .in('id', farmerIds);
 
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, full_name, phone_number')
+        .in('id', farmerIds);
+
+      if (farmersData) {
+        farmersData.forEach((f: any) => { farmerMap[f.id] = f; });
+      }
       if (usersData) {
-        userMap = usersData.reduce((acc: any, u: any) => {
-          acc[u.id] = u;
-          return acc;
-        }, {});
+        usersData.forEach((u: any) => {
+          if (!farmerMap[u.id]) farmerMap[u.id] = u;
+        });
       }
     }
 
     const enrichedPayouts = payouts.map((p: any) => {
-      const matchedUser = userMap[p.farmer_id] || {};
+      const matched = farmerMap[p.farmer_id] || {};
+      const nameDisplay = matched.full_name 
+        ? `${matched.full_name} (${matched.farmer_code || `ID: ${p.farmer_id}`})`
+        : matched.phone_number || `Farmer ID: ${p.farmer_id}`;
+
       return {
         ...p,
         users: {
-          full_name: matchedUser.full_name || matchedUser.phone_number || `Farmer ID: ${p.farmer_id}`,
-          ...matchedUser
+          full_name: nameDisplay,
+          ...matched
         }
       };
     });
