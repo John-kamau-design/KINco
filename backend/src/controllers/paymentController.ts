@@ -3,66 +3,123 @@ import { supabase } from '../config/supabase';
 
 export const generatePayoutCycle = async (req: Request, res: Response) => {
   try {
-    const { start_date, end_date } = req.body;
+    const { start_date, end_date, farmer_id, farmer_code } = req.body;
 
     if (!start_date || !end_date) {
       return res.status(400).json({ message: 'Start date and end date are required.' });
     }
 
-    // 1. Fetch collections within the target date range
-    const { data: collections, error: colError } = await supabase
+    let targetFarmerId = farmer_id ? parseInt(farmer_id, 10) : null;
+
+    // Optional: Resolve farmer_code to user ID if provided
+    if (!targetFarmerId && farmer_code) {
+      const { data: farmerUser } = await supabase
+        .from('users')
+        .select('id')
+        .or(`farmer_code.eq.${farmer_code.trim().toUpperCase()},id_number.eq.${farmer_code.trim()}`)
+        .maybeSingle();
+
+      if (farmerUser) {
+        targetFarmerId = farmerUser.id;
+      } else {
+        return res.status(404).json({ message: `Farmer with code "${farmer_code}" was not found.` });
+      }
+    }
+
+    // 1. Fetch ONLY UNPAID collections within date range (filtered by specific farmer if requested)
+    let query = supabase
       .from('collections')
-      .select('driver_id, volume_liters, collected_at')
+      .select('id, driver_id, volume_liters, collected_at')
+      .eq('payout_status', 'UNPAID')
       .gte('collected_at', `${start_date}T00:00:00`)
       .lte('collected_at', `${end_date}T23:59:59`);
+
+    if (targetFarmerId) {
+      query = query.eq('driver_id', targetFarmerId);
+    }
+
+    const { data: collections, error: colError } = await query;
 
     if (colError) throw colError;
 
     if (!collections || collections.length === 0) {
-      return res.status(404).json({ message: 'No milk collections found for the specified period.' });
+      return res.status(404).json({
+        message: targetFarmerId
+          ? 'No unbilled milk collections found for this farmer in the selected period.'
+          : 'No unbilled milk collections found for the specified period.'
+      });
     }
 
-    // 2. Aggregate total liters per farmer (using driver_id as farmer reference)
-    const farmerTotals: Record<string, number> = {};
+    // 2. Group unpaid collections by farmer and track associated collection IDs
+    const farmerMap: Record<string, { totalVolume: number; collectionIds: number[] }> = {};
+
     collections.forEach((c: any) => {
-      const farmerId = c.driver_id;
-      const volume = Number(c.volume_liters || 0);
-      farmerTotals[farmerId] = (farmerTotals[farmerId] || 0) + volume;
+      const fid = c.driver_id;
+      const vol = Number(c.volume_liters || 0);
+
+      if (!farmerMap[fid]) {
+        farmerMap[fid] = { totalVolume: 0, collectionIds: [] };
+      }
+      farmerMap[fid].totalVolume += vol;
+      farmerMap[fid].collectionIds.push(c.id);
     });
 
-    // 3. Construct payout ledger payload items
-    const payoutRecords = Object.entries(farmerTotals).map(([farmer_id, totalLiters]) => {
-      const roundedLiters = Math.round(totalLiters * 100) / 100;
-      const grossAmount = Math.round(roundedLiters * 45 * 100) / 100; // Fixed rate: 45 KES/Litre
+    const insertedPayouts: any[] = [];
 
-      return {
-        farmer_id: parseInt(farmer_id, 10),
-        start_date,
-        end_date,
-        total_liters: roundedLiters,
-        rate_per_liter: 45.00,
-        gross_amount: grossAmount,
-        deductions: 0.00,
-        net_amount: grossAmount,
-        status: 'PENDING'
-      };
-    });
+    // 3. Process payout statement and lock collections for each farmer individually
+    for (const [fIdStr, data] of Object.entries(farmerMap)) {
+      const fId = parseInt(fIdStr, 10);
+      const roundedLiters = Math.round(data.totalVolume * 100) / 100;
+      const grossAmount = Math.round(roundedLiters * 45 * 100) / 100;
 
-    // 4. Insert generated payouts into farmer_payouts ledger table
-    const { data: insertedPayouts, error: insertError } = await supabase
-      .from('farmer_payouts')
-      .insert(payoutRecords)
-      .select();
+      // Insert individual farmer payout record
+      const { data: newPayout, error: payoutInsertErr } = await supabase
+        .from('farmer_payouts')
+        .insert([{
+          farmer_id: fId,
+          start_date,
+          end_date,
+          total_liters: roundedLiters,
+          rate_per_liter: 45.00,
+          gross_amount: grossAmount,
+          deductions: 0.00,
+          net_amount: grossAmount,
+          status: 'PENDING'
+        }])
+        .select()
+        .single();
 
-    if (insertError) {
-      console.error('CRITICAL: Payout ledger insert failed:', insertError);
-      return res.status(500).json({ message: `Failed to generate payouts: ${insertError.message}` });
+      if (payoutInsertErr) {
+        console.error(`Failed creating payout for farmer ID ${fId}:`, payoutInsertErr);
+        continue;
+      }
+
+      // Mark the corresponding collection records as BILLED to prevent duplicate payouts
+      if (newPayout && data.collectionIds.length > 0) {
+        const { error: markBilledErr } = await supabase
+          .from('collections')
+          .update({
+            payout_id: newPayout.id,
+            payout_status: 'BILLED'
+          })
+          .in('id', data.collectionIds);
+
+        if (markBilledErr) {
+          console.error(`Warning: Failed marking collections as BILLED for payout ${newPayout.id}:`, markBilledErr);
+        }
+      }
+
+      insertedPayouts.push(newPayout);
+    }
+
+    if (insertedPayouts.length === 0) {
+      return res.status(500).json({ message: 'Failed to generate payout statements.' });
     }
 
     return res.status(200).json({
       success: true,
-      message: `Successfully generated ${payoutRecords.length} payout statements for period ${start_date} to ${end_date}.`,
-      count: payoutRecords.length,
+      message: `Successfully generated ${insertedPayouts.length} payout statement(s) at 45 KES/L. Unbilled collections locked.`,
+      count: insertedPayouts.length,
       payouts: insertedPayouts
     });
 
@@ -74,7 +131,6 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
 
 export const getPayoutHistory = async (req: Request, res: Response) => {
   try {
-    // 1. Query raw payout records from farmer_payouts
     const { data: payouts, error: payoutsError } = await supabase
       .from('farmer_payouts')
       .select('*')
@@ -89,7 +145,6 @@ export const getPayoutHistory = async (req: Request, res: Response) => {
       });
     }
 
-    // 2. Safely map matching user profiles
     const farmerIds = Array.from(new Set(payouts.map((p: any) => p.farmer_id).filter(Boolean)));
     let userMap: Record<string, any> = {};
 
@@ -107,7 +162,6 @@ export const getPayoutHistory = async (req: Request, res: Response) => {
       }
     }
 
-    // 3. Enrich payouts with farmer details
     const enrichedPayouts = payouts.map((p: any) => {
       const matchedUser = userMap[p.farmer_id] || {};
       return {
