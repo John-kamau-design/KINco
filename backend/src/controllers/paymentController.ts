@@ -3,8 +3,7 @@ import { supabase } from '../config/supabase';
 
 /**
  * 1. GET FARMER MILK INTAKE SUMMARY FOR PAYOUT
- * Resolves farmer code/ID across both farmers and users tables,
- * returning their full intake history with UNPAID vs BILLED status.
+ * Resolves farmer code/ID and ensures a valid farmers directory record exists.
  */
 export const getFarmerPayoutSummary = async (req: Request, res: Response) => {
   try {
@@ -13,14 +12,14 @@ export const getFarmerPayoutSummary = async (req: Request, res: Response) => {
 
     const cleanCode = code.trim().toUpperCase();
 
-    // Find farmer details across farmers directory table
+    // 1. Search in farmers table first
     let { data: farmer, error: farmerErr } = await supabase
       .from('farmers')
-      .select('id, farmer_code, full_name, phone_number, id_number, route, is_shareholder')
+      .select('id, farmer_code, kid, full_name, phone_number, id_number, route, is_shareholder')
       .or(`farmer_code.ilike.${cleanCode},kid.eq.${cleanCode},id_number.eq.${cleanCode}`)
       .maybeSingle();
 
-    // Fallback lookup in users table if not found in farmers
+    // 2. Fallback lookup in users table if not found in farmers
     if (!farmer) {
       const { data: userRecord } = await supabase
         .from('users')
@@ -29,15 +28,32 @@ export const getFarmerPayoutSummary = async (req: Request, res: Response) => {
         .maybeSingle();
 
       if (userRecord) {
-        farmer = {
-          id: userRecord.id,
-          farmer_code: userRecord.farmer_code || cleanCode,
-          full_name: userRecord.full_name,
-          phone_number: userRecord.phone_number,
-          id_number: userRecord.id_number,
-          route: 'Default Route',
-          is_shareholder: false
-        };
+        // Check if a farmer record already exists for this user/code
+        const { data: existingFarmer } = await supabase
+          .from('farmers')
+          .select('id, farmer_code, kid, full_name, phone_number, id_number, route, is_shareholder')
+          .eq('farmer_code', userRecord.farmer_code || cleanCode)
+          .maybeSingle();
+
+        if (existingFarmer) {
+          farmer = existingFarmer;
+        } else {
+          // Auto-provision into farmers table to satisfy foreign key constraints
+          const { data: newFarmer, error: createErr } = await supabase
+            .from('farmers')
+            .insert([{
+              full_name: userRecord.full_name || 'Farmer ' + cleanCode,
+              farmer_code: userRecord.farmer_code || cleanCode,
+              phone_number: userRecord.phone_number || '',
+              id_number: userRecord.id_number || ''
+            }])
+            .select()
+            .single();
+
+          if (!createErr && newFarmer) {
+            farmer = newFarmer;
+          }
+        }
       }
     }
 
@@ -45,7 +61,7 @@ export const getFarmerPayoutSummary = async (req: Request, res: Response) => {
       return res.status(404).json({ message: `Farmer with code or ID "${cleanCode}" was not found.` });
     }
 
-    // Fetch all collections recorded for this farmer (checking both farmer_id and driver_id references)
+    // 3. Fetch all collections recorded for this farmer (checking both farmer_id and driver_id)
     const { data: collections, error: colErr } = await supabase
       .from('collections')
       .select('id, volume_liters, collected_at, payout_status, payout_id, notes')
@@ -75,8 +91,7 @@ export const getFarmerPayoutSummary = async (req: Request, res: Response) => {
 
 /**
  * 2. PROCESS PAYOUT FOR SELECTED FARMER COLLECTIONS
- * Converts unbilled collection records to BILLED and generates
- * a dedicated ledger record in farmer_payouts at 45 KES/L.
+ * Validates the farmer ID against the farmers table before inserting ledger record.
  */
 export const processFarmerPayout = async (req: Request, res: Response) => {
   try {
@@ -86,13 +101,25 @@ export const processFarmerPayout = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Farmer ID is required.' });
     }
 
+    const targetFarmerId = parseInt(farmer_id, 10);
+
+    // Ensure the farmer exists in the farmers table to satisfy FK constraint
+    const { data: validFarmer, error: checkErr } = await supabase
+      .from('farmers')
+      .select('id')
+      .eq('id', targetFarmerId)
+      .maybeSingle();
+
+    if (checkErr || !validFarmer) {
+      return res.status(400).json({ message: 'Invalid farmer reference. Please re-search the farmer in the payout hub.' });
+    }
+
     let query = supabase
       .from('collections')
       .select('id, volume_liters, collected_at')
-      .or(`farmer_id.eq.${farmer_id},driver_id.eq.${farmer_id}`)
+      .or(`farmer_id.eq.${targetFarmerId},driver_id.eq.${targetFarmerId}`)
       .or('payout_status.eq.UNPAID,payout_status.is.null,payout_status.eq.');
 
-    // If explicit collection IDs are provided
     if (collection_ids && Array.isArray(collection_ids) && collection_ids.length > 0) {
       query = query.in('id', collection_ids);
     }
@@ -110,16 +137,15 @@ export const processFarmerPayout = async (req: Request, res: Response) => {
     const grossAmount = Math.round(roundedLiters * 45 * 100) / 100;
     const idsToLock = unpaidCollections.map(c => c.id);
 
-    // Calculate period bounds from collections if dates are not passed explicitly
     const collectionDates = unpaidCollections.map(c => new Date(c.collected_at).getTime());
     const calculatedStartDate = start_date || new Date(Math.min(...collectionDates)).toISOString().split('T')[0];
     const calculatedEndDate = end_date || new Date(Math.max(...collectionDates)).toISOString().split('T')[0];
 
-    // Insert completed payout record into farmer_payouts ledger
+    // Insert payout record linked to valid farmers table ID
     const { data: payout, error: insertErr } = await supabase
       .from('farmer_payouts')
       .insert([{
-        farmer_id: parseInt(farmer_id, 10),
+        farmer_id: targetFarmerId,
         start_date: calculatedStartDate,
         end_date: calculatedEndDate,
         total_liters: roundedLiters,
@@ -134,7 +160,7 @@ export const processFarmerPayout = async (req: Request, res: Response) => {
 
     if (insertErr) throw insertErr;
 
-    // Lock collections as BILLED so they can never be double-paid
+    // Lock collections as BILLED
     await supabase
       .from('collections')
       .update({
@@ -145,7 +171,7 @@ export const processFarmerPayout = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      message: `Successfully paid KES ${grossAmount.toLocaleString()} for ${roundedLiters} Liters!`,
+      message: `Successfully processed payout of KES ${grossAmount.toLocaleString()} for ${roundedLiters} Liters!`,
       payout
     });
 
@@ -157,7 +183,6 @@ export const processFarmerPayout = async (req: Request, res: Response) => {
 
 /**
  * 3. GET COMPLETED PAYOUT LOGS
- * Returns historical ledger statements enriched with farmer names & codes.
  */
 export const getPayoutHistory = async (req: Request, res: Response) => {
   try {
@@ -181,18 +206,8 @@ export const getPayoutHistory = async (req: Request, res: Response) => {
         .select('id, full_name, farmer_code, kid, phone_number')
         .in('id', farmerIds);
 
-      const { data: usersData } = await supabase
-        .from('users')
-        .select('id, full_name, phone_number')
-        .in('id', farmerIds);
-
       if (farmersData) {
         farmersData.forEach((f: any) => { farmerMap[f.id] = f; });
-      }
-      if (usersData) {
-        usersData.forEach((u: any) => {
-          if (!farmerMap[u.id]) farmerMap[u.id] = u;
-        });
       }
     }
 
