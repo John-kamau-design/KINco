@@ -14,17 +14,15 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
 
     // 1. Resolve farmer_code to all candidate IDs across both tables
     if (targetFarmerCode) {
-      // Check farmers table
       const { data: farmerRecords } = await supabase
         .from('farmers')
-        .select('id, farmer_code, phone_number, id_number')
+        .select('id, farmer_code, id_number')
         .or(`farmer_code.ilike.${targetFarmerCode},id_number.eq.${targetFarmerCode}`);
 
       if (farmerRecords && farmerRecords.length > 0) {
         farmerRecords.forEach((f: any) => targetFarmerIds.push(f.id));
       }
 
-      // Check users table
       const { data: userRecords } = await supabase
         .from('users')
         .select('id, farmer_code, id_number')
@@ -34,7 +32,6 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
         userRecords.forEach((u: any) => targetFarmerIds.push(u.id));
       }
 
-      // Deduplicate found IDs
       targetFarmerIds = Array.from(new Set(targetFarmerIds));
 
       if (targetFarmerIds.length === 0) {
@@ -42,17 +39,19 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
       }
     }
 
-    // 2. Build collection query covering full inclusive date bounds
-    // Handle full day boundaries: 00:00:00.000 to 23:59:59.999
-    const formattedStart = `${start_date}T00:00:00.000Z`;
-    const formattedEnd = `${end_date}T23:59:59.999Z`;
+    // 2. Query collections - broader date range matching to handle timezones
+    const startDateObj = new Date(start_date);
+    startDateObj.setHours(0, 0, 0, 0);
+
+    const endDateObj = new Date(end_date);
+    endDateObj.setHours(23, 59, 59, 999);
 
     let query = supabase
       .from('collections')
       .select('id, driver_id, volume_liters, collected_at, payout_status')
-      .or('payout_status.eq.UNPAID,payout_status.is.null') // Handles new or existing unbilled records
-      .gte('collected_at', formattedStart)
-      .lte('collected_at', formattedEnd);
+      .or('payout_status.eq.UNPAID,payout_status.is.null,payout_status.eq.')
+      .gte('collected_at', startDateObj.toISOString())
+      .lte('collected_at', endDateObj.toISOString());
 
     if (targetFarmerIds.length > 0) {
       query = query.in('driver_id', targetFarmerIds);
@@ -60,10 +59,7 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
 
     const { data: collections, error: colError } = await query;
 
-    if (colError) {
-      console.error('Collection fetch error:', colError);
-      throw colError;
-    }
+    if (colError) throw colError;
 
     if (!collections || collections.length === 0) {
       return res.status(404).json({
@@ -73,7 +69,7 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
       });
     }
 
-    // 3. Group collections by farmer ID
+    // 3. Aggregate unbilled liters per farmer
     const farmerMap: Record<string, { totalVolume: number; collectionIds: number[] }> = {};
 
     collections.forEach((c: any) => {
@@ -89,7 +85,7 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
 
     const insertedPayouts: any[] = [];
 
-    // 4. Generate payout ledger records & mark collections as BILLED
+    // 4. Create payout statement & update collection status to BILLED
     for (const [fIdStr, data] of Object.entries(farmerMap)) {
       const fId = parseInt(fIdStr, 10);
       const roundedLiters = Math.round(data.totalVolume * 100) / 100;
@@ -116,7 +112,6 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
         continue;
       }
 
-      // Lock collections as BILLED so they cannot be paid again
       if (newPayout && data.collectionIds.length > 0) {
         await supabase
           .from('collections')

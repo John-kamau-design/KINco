@@ -72,6 +72,7 @@ export const recordCollection = async (req: Request, res: Response) => {
       route_id,
       volume_liters: intakeVolume,
       can_count: can_count ? parseInt(can_count, 10) : 1,
+      payout_status: 'UNPAID', // Explicitly initialize collection as unpaid for payout generation
       collected_at: new Date().toISOString()
     };
 
@@ -81,7 +82,7 @@ export const recordCollection = async (req: Request, res: Response) => {
       .from('collections')
       .insert([payload])
       .select(`
-        id, volume_liters, can_count, collected_at, notes, driver_id,
+        id, volume_liters, can_count, collected_at, notes, driver_id, payout_status,
         farmers (farmer_code, full_name, kid)
       `)
       .single();
