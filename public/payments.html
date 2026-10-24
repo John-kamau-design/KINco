@@ -52,7 +52,7 @@
       <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
         <div class="border-b border-slate-700/60 pb-4">
           <h2 class="text-2xl font-bold text-emerald-400">Select Farmer to Pay</h2>
-          <p class="text-xs text-slate-400 mt-1">Enter Farmer Code (KLF / AKLS) or ID to view unbilled milk logs and disburse funds.</p>
+          <p class="text-xs text-slate-400 mt-1">Enter Farmer Code (KLF / AKLS / KID) or ID to view unbilled milk logs and disburse funds.</p>
         </div>
 
         <div class="flex flex-col md:flex-row gap-4 items-end">
@@ -87,6 +87,7 @@
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="border-b border-slate-700/80 text-slate-400 text-xs uppercase tracking-wider bg-[#0B132B]/50">
+                <th class="py-3.5 px-4 text-center">#</th>
                 <th class="py-3.5 px-4">Intake ID</th>
                 <th class="py-3.5 px-4">Date & Time</th>
                 <th class="py-3.5 px-4 text-right">Volume (L)</th>
@@ -97,7 +98,7 @@
             </thead>
             <tbody id="farmerIntakeTableBody" class="divide-y divide-slate-700/50 text-sm text-slate-200">
               <tr>
-                <td colspan="6" class="py-6 text-center text-slate-500">Search a farmer code to display intake records...</td>
+                <td colspan="7" class="py-6 text-center text-slate-500">Search a farmer code to display intake records...</td>
               </tr>
             </tbody>
           </table>
@@ -125,10 +126,27 @@
           </button>
         </div>
 
+        <!-- FILTERS: SEARCH BY NAME / KID & DATE RANGE -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#0B132B]/60 p-4 rounded-xl border border-slate-700/50">
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Search Name / KID</label>
+            <input type="text" id="logSearchQuery" oninput="filterPayoutLogs()" placeholder="Type Farmer Name or KID..." class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Start Date</label>
+            <input type="date" id="logStartDate" onchange="filterPayoutLogs()" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">End Date</label>
+            <input type="date" id="logEndDate" onchange="filterPayoutLogs()" class="w-full bg-[#0B132B] border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="border-b border-slate-700/80 text-slate-400 text-xs uppercase tracking-wider bg-[#0B132B]/50">
+                <th class="py-3.5 px-4 text-center">#</th>
                 <th class="py-3.5 px-4">Farmer Details</th>
                 <th class="py-3.5 px-4">Period</th>
                 <th class="py-3.5 px-4 text-right">Total Liters</th>
@@ -139,7 +157,7 @@
             </thead>
             <tbody id="logsTableBody" class="divide-y divide-slate-700/50 text-sm text-slate-200">
               <tr>
-                <td colspan="6" class="py-8 text-center text-slate-400 animate-pulse">Loading completed payout logs...</td>
+                <td colspan="7" class="py-8 text-center text-slate-400 animate-pulse">Loading completed payout logs...</td>
               </tr>
             </tbody>
           </table>
@@ -151,6 +169,7 @@
 
   <script>
     let activeFarmerData = null;
+    let allRawPayoutLogs = [];
 
     function getToken() {
       return localStorage.getItem('kinco_token') || localStorage.getItem('token');
@@ -208,7 +227,7 @@
 
     function renderFarmerDetails(data) {
       document.getElementById('displayFarmerName').textContent = data.farmer.full_name;
-      document.getElementById('displayFarmerCode').textContent = `Code: ${data.farmer.farmer_code || 'N/A'} | Phone: ${data.farmer.phone_number || 'N/A'}`;
+      document.getElementById('displayFarmerCode').textContent = `Code: ${data.farmer.farmer_code || data.farmer.kid || 'N/A'} | Phone: ${data.farmer.phone_number || 'N/A'}`;
       document.getElementById('displayUnpaidGross').textContent = `KES ${data.estimatedPayoutKES.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
       document.getElementById('displayUnpaidLiters').textContent = `${data.totalUnpaidLiters.toLocaleString()} L unbilled`;
 
@@ -216,14 +235,14 @@
       const collections = data.collections || [];
 
       if (collections.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500">No milk intake records found for this farmer.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">No milk intake records found for this farmer.</td></tr>`;
         document.getElementById('processPayoutBtn').disabled = true;
         return;
       }
 
       document.getElementById('processPayoutBtn').disabled = data.totalUnpaidLiters <= 0;
 
-      tbody.innerHTML = collections.map(c => {
+      tbody.innerHTML = collections.map((c, index) => {
         const vol = Number(c.volume_liters || 0);
         const gross = Math.round(vol * 45 * 100) / 100;
         const isBilled = c.payout_status === 'BILLED';
@@ -234,6 +253,7 @@
 
         return `
           <tr class="hover:bg-slate-700/30 transition">
+            <td class="py-3 px-4 text-center text-xs font-bold text-slate-400">${index + 1}</td>
             <td class="py-3 px-4 font-mono text-xs text-slate-400">#${c.id}</td>
             <td class="py-3 px-4 text-xs text-slate-300">${new Date(c.collected_at).toLocaleString()}</td>
             <td class="py-3 px-4 text-right font-mono font-bold text-slate-200">${vol.toFixed(1)} L</td>
@@ -283,7 +303,7 @@
       const tbody = document.getElementById('logsTableBody');
       const token = getToken();
 
-      tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 animate-pulse">Loading completed payout logs...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 animate-pulse">Loading completed payout logs...</td></tr>`;
 
       try {
         const res = await fetch('/api/payments/history', {
@@ -293,35 +313,62 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to fetch ledger');
 
-        const payouts = data.payouts || [];
-        if (payouts.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">No completed payout logs found.</td></tr>`;
-          return;
-        }
-
-        tbody.innerHTML = payouts.map(p => {
-          const farmerName = p.users?.full_name || `Farmer (${p.farmer_id})`;
-          const code = p.users?.farmer_code || 'N/A';
-          const gross = Number(p.gross_amount).toLocaleString('en-US', { minimumFractionDigits: 2 });
-          const liters = Number(p.total_liters).toLocaleString('en-US', { minimumFractionDigits: 2 });
-
-          return `
-            <tr class="hover:bg-slate-700/30 transition">
-              <td class="py-3.5 px-4 font-semibold text-slate-100">${farmerName} <span class="text-xs font-mono text-emerald-400">(${code})</span></td>
-              <td class="py-3.5 px-4 text-xs font-mono text-slate-400">${p.start_date} to ${p.end_date}</td>
-              <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-200">${liters} L</td>
-              <td class="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-400">${gross}</td>
-              <td class="py-3.5 px-4 text-center">
-                <span class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 px-2.5 py-1 rounded-full text-xs font-bold">PAID</span>
-              </td>
-              <td class="py-3.5 px-4 text-center text-xs text-slate-400">${new Date(p.created_at).toLocaleDateString()}</td>
-            </tr>
-          `;
-        }).join('');
+        allRawPayoutLogs = data.payouts || [];
+        renderPayoutLogs(allRawPayoutLogs);
 
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-red-400 font-semibold">Error loading completed logs.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-red-400 font-semibold">Error loading completed logs.</td></tr>`;
       }
+    }
+
+    function filterPayoutLogs() {
+      const query = document.getElementById('logSearchQuery').value.trim().toLowerCase();
+      const startDate = document.getElementById('logStartDate').value;
+      const endDate = document.getElementById('logEndDate').value;
+
+      const filtered = allRawPayoutLogs.filter(p => {
+        const name = (p.users?.full_name || '').toLowerCase();
+        const code = (p.users?.farmer_code || p.users?.kid || '').toLowerCase();
+        const matchesQuery = !query || name.includes(query) || code.includes(query);
+
+        const paidDate = p.created_at ? p.created_at.split('T')[0] : '';
+        const matchesStart = !startDate || paidDate >= startDate;
+        const matchesEnd = !endDate || paidDate <= endDate;
+
+        return matchesQuery && matchesStart && matchesEnd;
+      });
+
+      renderPayoutLogs(filtered);
+    }
+
+    function renderPayoutLogs(payouts) {
+      const tbody = document.getElementById('logsTableBody');
+
+      if (payouts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No matching completed payout logs found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = payouts.map((p, index) => {
+        const farmerName = p.users?.full_name || `Farmer (${p.farmer_id})`;
+        const code = p.users?.farmer_code || p.users?.kid || 'N/A';
+        const gross = Number(p.gross_amount).toLocaleString('en-US', { minimumFractionDigits: 2 });
+        const liters = Number(p.total_liters).toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+        return `
+          <tr class="hover:bg-slate-700/30 transition">
+            <td class="py-3.5 px-4 text-center text-xs font-bold text-slate-400">${index + 1}</td>
+            <td class="py-3.5 px-4 font-semibold text-slate-100">${farmerName} <span class="text-xs font-mono text-emerald-400">(${code})</span></td>
+            <td class="py-3.5 px-4 text-xs font-mono text-slate-400">${p.start_date} to ${p.end_date}</td>
+            <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-200">${liters} L</td>
+            <td class="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-400">${gross}</td>
+            <td class="py-3.5 px-4 text-center">
+              <span class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 px-2.5 py-1 rounded-full text-xs font-bold">PAID</span>
+            </td>
+            <td class="py-3.5 px-4 text-center text-xs text-slate-400">${new Date(p.created_at).toLocaleDateString()}</td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function showAlert(message, type) {
