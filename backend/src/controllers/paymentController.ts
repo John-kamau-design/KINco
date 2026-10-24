@@ -74,20 +74,56 @@ export const generatePayoutCycle = async (req: Request, res: Response) => {
 
 export const getPayoutHistory = async (req: Request, res: Response) => {
   try {
-    const { data, error } = await supabase
+    // 1. Query raw payout records from farmer_payouts
+    const { data: payouts, error: payoutsError } = await supabase
       .from('farmer_payouts')
-      .select(`
-        *,
-        users:farmer_id (id, full_name, national_id, phone_number, email)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (payoutsError) throw payoutsError;
+
+    if (!payouts || payouts.length === 0) {
+      return res.status(200).json({
+        success: true,
+        payouts: []
+      });
+    }
+
+    // 2. Safely map matching user profiles
+    const farmerIds = Array.from(new Set(payouts.map((p: any) => p.farmer_id).filter(Boolean)));
+    let userMap: Record<string, any> = {};
+
+    if (farmerIds.length > 0) {
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, full_name, national_id, phone_number, email')
+        .in('id', farmerIds);
+
+      if (usersData) {
+        userMap = usersData.reduce((acc: any, u: any) => {
+          acc[u.id] = u;
+          return acc;
+        }, {});
+      }
+    }
+
+    // 3. Enrich payouts with farmer details
+    const enrichedPayouts = payouts.map((p: any) => {
+      const matchedUser = userMap[p.farmer_id] || {};
+      return {
+        ...p,
+        users: {
+          full_name: matchedUser.full_name || matchedUser.phone_number || `Farmer ID: ${p.farmer_id}`,
+          ...matchedUser
+        }
+      };
+    });
 
     return res.status(200).json({
       success: true,
-      payouts: data || []
+      payouts: enrichedPayouts
     });
+
   } catch (err: any) {
     console.error('Fetch payouts error:', err);
     return res.status(500).json({ message: err.message || 'Error fetching payout history' });
