@@ -121,9 +121,15 @@
             <h2 class="text-2xl font-bold text-emerald-400">Pending Payout Statements</h2>
             <p class="text-xs text-slate-400 mt-1">Audit log of calculated payout statements awaiting final disbursement.</p>
           </div>
-          <button onclick="loadPendingPayouts()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2.5 rounded-lg transition font-semibold border border-slate-600">
-            Refresh Pending Logs
-          </button>
+          <div class="flex items-center gap-4">
+            <div class="bg-[#0B132B] border border-slate-700 px-4 py-2 rounded-xl text-right">
+              <p class="text-[10px] text-slate-400 font-medium uppercase">Total Pending Amount</p>
+              <p id="totalPendingAmountDisplay" class="text-lg font-black text-amber-400">0.00 KES</p>
+            </div>
+            <button onclick="loadPendingPayouts()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2.5 rounded-lg transition font-semibold border border-slate-600">
+              Refresh
+            </button>
+          </div>
         </div>
 
         <!-- FILTERS -->
@@ -173,9 +179,15 @@
             <h2 class="text-2xl font-bold text-emerald-400">Completed Payout Ledger</h2>
             <p class="text-xs text-slate-400 mt-1">Audit log of all disbursed farmer payout statements.</p>
           </div>
-          <button onclick="loadPayoutHistory()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2.5 rounded-lg transition font-semibold border border-slate-600">
-            Refresh Ledger
-          </button>
+          <div class="flex items-center gap-4">
+            <div class="bg-[#0B132B] border border-slate-700 px-4 py-2 rounded-xl text-right">
+              <p class="text-[10px] text-slate-400 font-medium uppercase">Total Paid Amount</p>
+              <p id="totalPaidAmountDisplay" class="text-lg font-black text-emerald-400">0.00 KES</p>
+            </div>
+            <button onclick="loadPayoutHistory()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2.5 rounded-lg transition font-semibold border border-slate-600">
+              Refresh
+            </button>
+          </div>
         </div>
 
         <!-- FILTERS -->
@@ -237,7 +249,6 @@
       const btnPending = document.getElementById('tab-btn-pending');
       const btnLogs = document.getElementById('tab-btn-logs');
 
-      // Reset all
       viewProcess.classList.add('hidden');
       viewPending.classList.add('hidden');
       viewLogs.classList.add('hidden');
@@ -354,7 +365,7 @@
         if (!res.ok) throw new Error(result.message || 'Failed to process payout');
 
         showAlert(result.message, 'success');
-        await fetchFarmerSummary(); // Refresh
+        await fetchFarmerSummary();
       } catch (err) {
         showAlert(err.message, 'error');
       } finally {
@@ -408,6 +419,10 @@
 
     function renderPendingPayouts(payouts) {
       const tbody = document.getElementById('pendingTableBody');
+      
+      // Calculate total pending amount for current view/filter
+      const totalPendingSum = payouts.reduce((acc, p) => acc + Number(p.gross_amount || 0), 0);
+      document.getElementById('totalPendingAmountDisplay').textContent = `KES ${totalPendingSum.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
       if (payouts.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No pending payout statements found.</td></tr>`;
@@ -426,7 +441,7 @@
             <td class="py-3.5 px-4 font-semibold text-slate-100">${farmerName} <span class="text-xs font-mono text-emerald-400">(${code})</span></td>
             <td class="py-3.5 px-4 text-xs font-mono text-slate-400">${p.start_date} to ${p.end_date}</td>
             <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-200">${liters} L</td>
-            <td class="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-400">${gross}</td>
+            <td class="py-3.5 px-4 text-right font-mono font-extrabold text-amber-400">${gross}</td>
             <td class="py-3.5 px-4 text-center">
               <span class="bg-amber-950/80 text-amber-300 border border-amber-600/50 px-2.5 py-1 rounded-full text-xs font-bold">PENDING</span>
             </td>
@@ -501,6 +516,10 @@
 
     function renderPayoutLogs(payouts) {
       const tbody = document.getElementById('logsTableBody');
+
+      // Calculate total paid amount for current view/filter
+      const totalPaidSum = payouts.reduce((acc, p) => acc + Number(p.gross_amount || 0), 0);
+      document.getElementById('totalPaidAmountDisplay').textContent = `KES ${totalPaidSum.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
       if (payouts.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No matching completed payout logs found.</td></tr>`;
