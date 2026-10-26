@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { 
   getFarmerPayoutSummary, 
   processFarmerPayout, 
-  markPayoutPaid,
+  getPendingPayoutLogs,
   getPayoutHistory 
 } from '../controllers/paymentController';
 import { authenticateToken as verifyToken } from '../middleware/auth';
@@ -13,7 +13,7 @@ router.use(verifyToken);
 
 router.get('/farmer-summary/:code', getFarmerPayoutSummary);
 router.post('/process-farmer-payout', processFarmerPayout);
-router.post('/pay/:id', markPayoutPaid);
+router.get('/pending-logs', getPendingPayoutLogs);
 router.get('/history', getPayoutHistory);
 
 export default router;

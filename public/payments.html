@@ -16,7 +16,7 @@
       </div>
       <div>
         <h1 class="text-xl font-bold text-emerald-400">KINCo Farmer Payout Hub</h1>
-        <p class="text-xs text-slate-400">Individual & Batch Disbursement (Fixed 45 KES/L)</p>
+        <p class="text-xs text-slate-400">Individual & Automated Disbursement (Fixed 45 KES/L)</p>
       </div>
     </div>
 
@@ -55,7 +55,7 @@
       <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
         <div class="border-b border-slate-700/60 pb-4">
           <h2 class="text-2xl font-bold text-emerald-400">Select Farmer to Pay</h2>
-          <p class="text-xs text-slate-400 mt-1">Enter Farmer Code (KLF / AKLS / KID) or ID to view unbilled milk logs and generate payout statements.</p>
+          <p class="text-xs text-slate-400 mt-1">Enter Farmer Code (KLF / AKLS / KID) or ID to view all milk intake records (paid & unpaid).</p>
         </div>
 
         <div class="flex flex-col md:flex-row gap-4 items-end">
@@ -71,16 +71,28 @@
         <div id="statusAlert" class="hidden text-xs font-bold p-3 rounded-lg"></div>
       </section>
 
+      <!-- FARMER METRICS & INTAKE TABLE -->
       <div id="farmerDetailsCard" class="hidden bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700/60 pb-4 gap-4">
           <div>
             <h3 id="displayFarmerName" class="text-2xl font-bold text-white">---</h3>
             <p id="displayFarmerCode" class="text-xs font-mono text-emerald-400 mt-1">Code: ---</p>
           </div>
-          <div class="bg-[#0B132B] border border-slate-700 p-4 rounded-xl text-right">
-            <p class="text-xs text-slate-400 font-medium uppercase">Pending Unbilled Earnings</p>
-            <p id="displayUnpaidGross" class="text-2xl font-black text-emerald-400 mt-0.5">0.00 KES</p>
-            <p id="displayUnpaidLiters" class="text-xs text-slate-300 font-mono">0.00 L unbilled</p>
+          
+          <div class="flex items-center gap-4">
+            <!-- TOTAL PAID -->
+            <div class="bg-[#0B132B] border border-slate-700 p-3.5 rounded-xl text-right">
+              <p class="text-[10px] text-slate-400 font-medium uppercase">Total Paid</p>
+              <p id="displayTotalPaidGross" class="text-xl font-black text-slate-300 mt-0.5">0.00 KES</p>
+              <p id="displayTotalPaidLiters" class="text-[10px] text-slate-400 font-mono">0 L paid</p>
+            </div>
+
+            <!-- TOTAL UNPAID -->
+            <div class="bg-[#0B132B] border border-amber-600/50 p-3.5 rounded-xl text-right">
+              <p class="text-[10px] text-amber-400 font-medium uppercase">Total Unpaid Balance</p>
+              <p id="displayUnpaidGross" class="text-xl font-black text-amber-400 mt-0.5">0.00 KES</p>
+              <p id="displayUnpaidLiters" class="text-[10px] text-amber-300/70 font-mono">0 L unpaid</p>
+            </div>
           </div>
         </div>
 
@@ -107,32 +119,31 @@
 
         <div class="pt-4 border-t border-slate-700/60 flex justify-end">
           <button id="processPayoutBtn" onclick="processSelectedFarmerPayout()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-extrabold px-8 py-3.5 rounded-lg transition text-sm shadow-lg">
-            Generate Pending Payout Statement (45 KES/L)
+            Pay Farmer Now (45 KES/L)
           </button>
         </div>
       </div>
     </div>
 
-    <!-- TAB 2: PENDING PAYOUT LOGS -->
+    <!-- TAB 2: PENDING PAYOUT LOGS (DRIVER INTAKE QUEUE) -->
     <div id="view-pending" class="hidden space-y-6">
       <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700/60 pb-4 gap-4">
           <div>
-            <h2 class="text-2xl font-bold text-emerald-400">Pending Payout Statements</h2>
-            <p class="text-xs text-slate-400 mt-1">Audit log of calculated payout statements awaiting final disbursement.</p>
+            <h2 class="text-2xl font-bold text-emerald-400">Pending Driver Intake Queue</h2>
+            <p class="text-xs text-slate-400 mt-1">Unpaid milk intake logs submitted by drivers awaiting payout.</p>
           </div>
           <div class="flex items-center gap-4">
             <div class="bg-[#0B132B] border border-slate-700 px-4 py-2 rounded-xl text-right">
-              <p class="text-[10px] text-slate-400 font-medium uppercase">Total Pending Amount</p>
+              <p class="text-[10px] text-slate-400 font-medium uppercase">Total Pending Queue</p>
               <p id="totalPendingAmountDisplay" class="text-lg font-black text-amber-400">0.00 KES</p>
             </div>
             <button onclick="loadPendingPayouts()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2.5 rounded-lg transition font-semibold border border-slate-600">
-              Refresh
+              Refresh Queue
             </button>
           </div>
         </div>
 
-        <!-- FILTERS -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#0B132B]/60 p-4 rounded-xl border border-slate-700/50">
           <div>
             <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Search Name / KID</label>
@@ -154,8 +165,8 @@
               <tr class="border-b border-slate-700/80 text-slate-400 text-xs uppercase tracking-wider bg-[#0B132B]/50">
                 <th class="py-3.5 px-4 text-center">#</th>
                 <th class="py-3.5 px-4">Farmer Details</th>
-                <th class="py-3.5 px-4">Period</th>
-                <th class="py-3.5 px-4 text-right">Total Liters</th>
+                <th class="py-3.5 px-4">Intake Date</th>
+                <th class="py-3.5 px-4 text-right">Volume (L)</th>
                 <th class="py-3.5 px-4 text-right">Gross Pay (KES)</th>
                 <th class="py-3.5 px-4 text-center">Status</th>
                 <th class="py-3.5 px-4 text-center">Action</th>
@@ -163,7 +174,7 @@
             </thead>
             <tbody id="pendingTableBody" class="divide-y divide-slate-700/50 text-sm text-slate-200">
               <tr>
-                <td colspan="7" class="py-8 text-center text-slate-400 animate-pulse">Loading pending payout logs...</td>
+                <td colspan="7" class="py-8 text-center text-slate-400 animate-pulse">Loading pending intake logs...</td>
               </tr>
             </tbody>
           </table>
@@ -190,7 +201,6 @@
           </div>
         </div>
 
-        <!-- FILTERS -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#0B132B]/60 p-4 rounded-xl border border-slate-700/50">
           <div>
             <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Search Name / KID</label>
@@ -303,8 +313,13 @@
     function renderFarmerDetails(data) {
       document.getElementById('displayFarmerName').textContent = data.farmer.full_name;
       document.getElementById('displayFarmerCode').textContent = `Code: ${data.farmer.farmer_code || data.farmer.kid || 'N/A'} | Phone: ${data.farmer.phone_number || 'N/A'}`;
-      document.getElementById('displayUnpaidGross').textContent = `KES ${data.estimatedPayoutKES.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-      document.getElementById('displayUnpaidLiters').textContent = `${data.totalUnpaidLiters.toLocaleString()} L unbilled`;
+      
+      // Dynamic counters for Total Paid & Total Unpaid KES
+      document.getElementById('displayTotalPaidGross').textContent = `KES ${data.totalPaidKES.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+      document.getElementById('displayTotalPaidLiters').textContent = `${data.totalPaidLiters.toLocaleString()} L paid`;
+
+      document.getElementById('displayUnpaidGross').textContent = `KES ${data.totalUnpaidKES.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+      document.getElementById('displayUnpaidLiters').textContent = `${data.totalUnpaidLiters.toLocaleString()} L unpaid`;
 
       const tbody = document.getElementById('farmerIntakeTableBody');
       const collections = data.collections || [];
@@ -320,11 +335,11 @@
       tbody.innerHTML = collections.map((c, index) => {
         const vol = Number(c.volume_liters || 0);
         const gross = Math.round(vol * 45 * 100) / 100;
-        const isBilled = c.payout_status === 'BILLED';
+        const isPaid = c.payout_status && (c.payout_status.toUpperCase() === 'PAID' || c.payout_status.toUpperCase() === 'BILLED');
 
-        const badge = isBilled
-          ? '<span class="bg-slate-800 text-slate-400 border border-slate-700 px-2.5 py-1 rounded-full text-xs font-bold">BILLED</span>'
-          : '<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 px-2.5 py-1 rounded-full text-xs font-bold">UNPAID</span>';
+        const badge = isPaid
+          ? '<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 px-2.5 py-1 rounded-full text-xs font-bold">PAID</span>'
+          : '<span class="bg-amber-950/80 text-amber-300 border border-amber-600/50 px-2.5 py-1 rounded-full text-xs font-bold">UNPAID</span>';
 
         return `
           <tr class="hover:bg-slate-700/30 transition">
@@ -333,7 +348,7 @@
             <td class="py-3 px-4 text-xs text-slate-300">${new Date(c.collected_at).toLocaleString()}</td>
             <td class="py-3 px-4 text-right font-mono font-bold text-slate-200">${vol.toFixed(1)} L</td>
             <td class="py-3 px-4 text-right font-mono text-slate-400">45.00</td>
-            <td class="py-3 px-4 text-right font-mono font-extrabold text-emerald-400">${gross.toFixed(2)}</td>
+            <td class="py-3 px-4 text-right font-mono font-extrabold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}">${gross.toFixed(2)}</td>
             <td class="py-3 px-4 text-center">${badge}</td>
           </tr>
         `;
@@ -347,7 +362,7 @@
       const token = getToken();
 
       btn.disabled = true;
-      btn.textContent = 'Generating Pending Statement...';
+      btn.textContent = 'Processing Payout...';
 
       try {
         const res = await fetch('/api/payments/process-farmer-payout', {
@@ -370,7 +385,7 @@
         showAlert(err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Generate Pending Payout Statement (45 KES/L)';
+        btn.textContent = 'Pay Farmer Now (45 KES/L)';
       }
     }
 
@@ -378,22 +393,21 @@
       const tbody = document.getElementById('pendingTableBody');
       const token = getToken();
 
-      tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 animate-pulse">Loading pending payout logs...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 animate-pulse">Loading pending driver intake queue...</td></tr>`;
 
       try {
-        const res = await fetch('/api/payments/history', {
+        const res = await fetch('/api/payments/pending-logs', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to fetch payouts');
+        if (!res.ok) throw new Error(data.message || 'Failed to fetch pending queue');
 
-        const allPayouts = data.payouts || [];
-        allPendingPayoutLogs = allPayouts.filter(p => p.status === 'PENDING');
+        allPendingPayoutLogs = data.pendingLogs || [];
         renderPendingPayouts(allPendingPayoutLogs);
 
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-red-400 font-semibold">Error loading pending logs.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-red-400 font-semibold">Error loading pending queue.</td></tr>`;
       }
     }
 
@@ -403,13 +417,13 @@
       const endDate = document.getElementById('pendingEndDate').value;
 
       const filtered = allPendingPayoutLogs.filter(p => {
-        const name = (p.users?.full_name || '').toLowerCase();
-        const code = (p.users?.farmer_code || p.users?.kid || '').toLowerCase();
+        const name = (p.farmer_name || '').toLowerCase();
+        const code = (p.farmer_code || '').toLowerCase();
         const matchesQuery = !query || name.includes(query) || code.includes(query);
 
-        const createdDate = p.created_at ? p.created_at.split('T')[0] : '';
-        const matchesStart = !startDate || createdDate >= startDate;
-        const matchesEnd = !endDate || createdDate <= endDate;
+        const intakeDate = p.collected_at ? p.collected_at.split('T')[0] : '';
+        const matchesStart = !startDate || intakeDate >= startDate;
+        const matchesEnd = !endDate || intakeDate <= endDate;
 
         return matchesQuery && matchesStart && matchesEnd;
       });
@@ -417,37 +431,33 @@
       renderPendingPayouts(filtered);
     }
 
-    function renderPendingPayouts(payouts) {
+    function renderPendingPayouts(logs) {
       const tbody = document.getElementById('pendingTableBody');
-      
-      // Calculate total pending amount for current view/filter
-      const totalPendingSum = payouts.reduce((acc, p) => acc + Number(p.gross_amount || 0), 0);
+      const totalPendingSum = logs.reduce((acc, p) => acc + Number(p.gross_amount || 0), 0);
       document.getElementById('totalPendingAmountDisplay').textContent = `KES ${totalPendingSum.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
-      if (payouts.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No pending payout statements found.</td></tr>`;
+      if (logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No pending unpaid driver intake logs found.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = payouts.map((p, index) => {
-        const farmerName = p.users?.full_name || `Farmer (${p.farmer_id})`;
-        const code = p.users?.farmer_code || p.users?.kid || 'N/A';
+      tbody.innerHTML = logs.map((p, index) => {
         const gross = Number(p.gross_amount).toLocaleString('en-US', { minimumFractionDigits: 2 });
-        const liters = Number(p.total_liters).toLocaleString('en-US', { minimumFractionDigits: 2 });
+        const liters = Number(p.volume_liters).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
         return `
           <tr class="hover:bg-slate-700/30 transition">
             <td class="py-3.5 px-4 text-center text-xs font-bold text-slate-400">${index + 1}</td>
-            <td class="py-3.5 px-4 font-semibold text-slate-100">${farmerName} <span class="text-xs font-mono text-emerald-400">(${code})</span></td>
-            <td class="py-3.5 px-4 text-xs font-mono text-slate-400">${p.start_date} to ${p.end_date}</td>
+            <td class="py-3.5 px-4 font-semibold text-slate-100">${p.farmer_name} <span class="text-xs font-mono text-emerald-400">(${p.farmer_code})</span></td>
+            <td class="py-3.5 px-4 text-xs font-mono text-slate-400">${new Date(p.collected_at).toLocaleString()}</td>
             <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-200">${liters} L</td>
             <td class="py-3.5 px-4 text-right font-mono font-extrabold text-amber-400">${gross}</td>
             <td class="py-3.5 px-4 text-center">
-              <span class="bg-amber-950/80 text-amber-300 border border-amber-600/50 px-2.5 py-1 rounded-full text-xs font-bold">PENDING</span>
+              <span class="bg-amber-950/80 text-amber-300 border border-amber-600/50 px-2.5 py-1 rounded-full text-xs font-bold">UNPAID</span>
             </td>
             <td class="py-3.5 px-4 text-center">
-              <button onclick="markAsPaid('${p.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-slate-900 text-xs font-extrabold px-3 py-1.5 rounded transition shadow">
-                Mark Paid
+              <button onclick="payDirectFromPending('${p.farmer_code}')" class="bg-emerald-600 hover:bg-emerald-500 text-slate-900 text-xs font-extrabold px-3 py-1.5 rounded transition shadow">
+                Pay Farmer
               </button>
             </td>
           </tr>
@@ -455,20 +465,10 @@
       }).join('');
     }
 
-    async function markAsPaid(payoutId) {
-      const token = getToken();
-      try {
-        const res = await fetch(`/api/payments/pay/${payoutId}`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message || 'Failed to update status');
-
-        loadPendingPayouts();
-      } catch (err) {
-        alert(err.message);
-      }
+    function payDirectFromPending(code) {
+      switchTab('process');
+      document.getElementById('searchFarmerCode').value = code;
+      fetchFarmerSummary();
     }
 
     async function loadPayoutHistory() {
@@ -485,8 +485,7 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to fetch ledger');
 
-        const allPayouts = data.payouts || [];
-        allRawPayoutLogs = allPayouts.filter(p => p.status === 'PAID');
+        allRawPayoutLogs = data.payouts || [];
         renderPayoutLogs(allRawPayoutLogs);
 
       } catch (err) {
@@ -516,8 +515,6 @@
 
     function renderPayoutLogs(payouts) {
       const tbody = document.getElementById('logsTableBody');
-
-      // Calculate total paid amount for current view/filter
       const totalPaidSum = payouts.reduce((acc, p) => acc + Number(p.gross_amount || 0), 0);
       document.getElementById('totalPaidAmountDisplay').textContent = `KES ${totalPaidSum.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
