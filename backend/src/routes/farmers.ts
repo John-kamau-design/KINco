@@ -13,20 +13,53 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const { full_name, phone_number, route, id_number, is_shareholder } = req.body;
 
-    if (!full_name || !phone_number) {
-      return res.status(400).json({ error: 'Full name and phone number are required' });
+    if (!full_name || !full_name.trim()) {
+      return res.status(400).json({ error: 'Full name is required.' });
     }
 
+    if (!phone_number || !phone_number.trim()) {
+      return res.status(400).json({ error: 'Phone number is required.' });
+    }
+
+    // Clean inputs to ensure empty strings don't collide on unique constraints
+    const cleanPhone = phone_number.trim();
+    const cleanIdNumber = id_number && id_number.trim() !== '' ? id_number.trim() : null;
     const isShareholder = Boolean(is_shareholder);
     const sequenceName = isShareholder ? 'akls_seq' : 'klf_seq';
     const prefix = isShareholder ? 'AKLS' : 'KLF';
 
-    // 1. Fetch next numeric value from the respective sequence
+    // 1. Explicit pre-checks for existing Phone Number and ID Number
+    const { data: existingPhone } = await supabase
+      .from('farmers')
+      .select('id, full_name')
+      .eq('phone_number', cleanPhone)
+      .maybeSingle();
+
+    if (existingPhone) {
+      return res.status(400).json({
+        error: `Phone number "${cleanPhone}" is already registered to farmer "${existingPhone.full_name}".`
+      });
+    }
+
+    if (cleanIdNumber) {
+      const { data: existingId } = await supabase
+        .from('farmers')
+        .select('id, full_name')
+        .eq('id_number', cleanIdNumber)
+        .maybeSingle();
+
+      if (existingId) {
+        return res.status(400).json({
+          error: `National ID "${cleanIdNumber}" is already registered to farmer "${existingId.full_name}".`
+        });
+      }
+    }
+
+    // 2. Fetch next numeric value from sequence
     const { data: seqData, error: seqError } = await supabase.rpc('nextval_seq', { seq_name: sequenceName });
 
     let nextVal = 1;
     if (seqError || !seqData) {
-      // Fallback SQL query if RPC isn't configured
       const { data: rawSeq } = await supabase.rpc('exec_sql', { 
         sql_query: `SELECT nextval('${sequenceName}') as val;` 
       });
@@ -35,19 +68,18 @@ router.post('/', async (req: Request, res: Response) => {
       nextVal = seqData;
     }
 
-    // Format ID as KLF0001, KLF0002... or AKLS0001, AKLS0002...
     const farmer_code = `${prefix}${nextVal.toString().padStart(4, '0')}`;
 
-    // 2. Insert record
+    // 3. Insert record with database unique error handling
     const { data, error } = await supabase
       .from('farmers')
       .insert([
         {
           farmer_code,
-          full_name,
-          phone_number,
+          full_name: full_name.trim(),
+          phone_number: cleanPhone,
           route: route || 'Default Route',
-          id_number: id_number || null,
+          id_number: cleanIdNumber,
           is_shareholder: isShareholder,
           created_at: new Date().toISOString()
         }
@@ -56,6 +88,22 @@ router.post('/', async (req: Request, res: Response) => {
 
     if (error) {
       console.error('Supabase error registering farmer:', error);
+
+      // Handle Postgres Unique Constraint Violation (Code 23505)
+      if (error.code === '23505' || error.message?.includes('unique constraint')) {
+        const msg = error.message.toLowerCase();
+        if (msg.includes('phone_number')) {
+          return res.status(400).json({ error: 'Registration failed: This phone number is already registered to another farmer.' });
+        }
+        if (msg.includes('id_number')) {
+          return res.status(400).json({ error: 'Registration failed: This National ID number is already registered to another farmer.' });
+        }
+        if (msg.includes('farmer_code')) {
+          return res.status(400).json({ error: 'Registration failed: Farmer Code collision detected. Please try again.' });
+        }
+        return res.status(400).json({ error: 'A farmer with these unique details (Phone Number or National ID) already exists.' });
+      }
+
       return res.status(400).json({ error: error.message });
     }
 
