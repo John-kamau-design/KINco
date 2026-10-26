@@ -2,22 +2,18 @@ import { Router } from 'express';
 import { 
   getFarmerPayoutSummary, 
   processFarmerPayout, 
+  markPayoutPaid,
   getPayoutHistory 
 } from '../controllers/paymentController';
-import { authenticateToken as verifyToken } from '../middleware/auth'; // Added curly braces for named export
+import { authenticateToken as verifyToken } from '../middleware/auth';
 
 const router = Router();
 
-// Secure all payment routes with authentication middleware
 router.use(verifyToken);
 
-// Fetch a specific farmer's milk intake records and payment summary
 router.get('/farmer-summary/:code', getFarmerPayoutSummary);
-
-// Process and disburse payout for unbilled collections of a selected farmer
 router.post('/process-farmer-payout', processFarmerPayout);
-
-// Fetch completed historical payout ledger statements
+router.post('/pay/:id', markPayoutPaid);
 router.get('/history', getPayoutHistory);
 
 export default router;

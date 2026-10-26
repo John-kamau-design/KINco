@@ -11,14 +11,12 @@ export const getFarmerPayoutSummary = async (req: Request, res: Response) => {
 
     const cleanCode = code.trim().toUpperCase();
 
-    // 1. Search in farmers table
     let { data: farmer, error: farmerErr } = await supabase
       .from('farmers')
       .select('id, farmer_code, kid, full_name, phone_number, id_number, route, is_shareholder')
       .or(`farmer_code.ilike.${cleanCode},kid.eq.${cleanCode},id_number.eq.${cleanCode}`)
       .maybeSingle();
 
-    // 2. Fallback: Search in users table and sync to farmers directory if missing
     if (!farmer) {
       const { data: userRecord } = await supabase
         .from('users')
@@ -27,7 +25,6 @@ export const getFarmerPayoutSummary = async (req: Request, res: Response) => {
         .maybeSingle();
 
       if (userRecord) {
-        // Try to locate by code in farmers table
         const { data: existingFarmer } = await supabase
           .from('farmers')
           .select('id, farmer_code, kid, full_name, phone_number, id_number, route, is_shareholder')
@@ -37,7 +34,6 @@ export const getFarmerPayoutSummary = async (req: Request, res: Response) => {
         if (existingFarmer) {
           farmer = existingFarmer;
         } else {
-          // Provision missing farmer entry to ensure valid FK
           const { data: newFarmer, error: createErr } = await supabase
             .from('farmers')
             .insert([{
@@ -60,7 +56,6 @@ export const getFarmerPayoutSummary = async (req: Request, res: Response) => {
       return res.status(404).json({ message: `Farmer with code or ID "${cleanCode}" was not found.` });
     }
 
-    // 3. Gather all collections linked to this farmer (either via farmer_id or driver_id)
     const { data: collections, error: colErr } = await supabase
       .from('collections')
       .select('id, volume_liters, collected_at, payout_status, payout_id, notes')
@@ -89,7 +84,7 @@ export const getFarmerPayoutSummary = async (req: Request, res: Response) => {
 };
 
 /**
- * 2. PROCESS PAYOUT FOR SELECTED FARMER COLLECTIONS
+ * 2. PROCESS PAYOUT (CREATES PENDING STATEMENT)
  */
 export const processFarmerPayout = async (req: Request, res: Response) => {
   try {
@@ -101,7 +96,6 @@ export const processFarmerPayout = async (req: Request, res: Response) => {
 
     const targetFarmerId = parseInt(farmer_id, 10);
 
-    // Verify farmer exists in farmers table
     let { data: validFarmer } = await supabase
       .from('farmers')
       .select('id, full_name, farmer_code')
@@ -109,37 +103,9 @@ export const processFarmerPayout = async (req: Request, res: Response) => {
       .maybeSingle();
 
     if (!validFarmer) {
-      // Emergency sync: check users table for matching ID and insert into farmers table
-      const { data: userBackup } = await supabase
-        .from('users')
-        .select('id, full_name, farmer_code, phone_number, id_number')
-        .eq('id', targetFarmerId)
-        .maybeSingle();
-
-      if (userBackup) {
-        const { data: syncedFarmer } = await supabase
-          .from('farmers')
-          .insert([{
-            id: userBackup.id, // Keep matching primary key
-            full_name: userBackup.full_name || 'Farmer ' + targetFarmerId,
-            farmer_code: userBackup.farmer_code || `KLF${targetFarmerId}`,
-            phone_number: userBackup.phone_number || '',
-            id_number: userBackup.id_number || ''
-          }])
-          .select()
-          .single();
-
-        if (syncedFarmer) {
-          validFarmer = syncedFarmer;
-        }
-      }
+      return res.status(400).json({ message: 'Invalid farmer reference.' });
     }
 
-    if (!validFarmer) {
-      return res.status(400).json({ message: 'Could not resolve a valid farmer record for payout.' });
-    }
-
-    // Fetch unpaid collections
     let query = supabase
       .from('collections')
       .select('id, volume_liters, collected_at')
@@ -167,7 +133,7 @@ export const processFarmerPayout = async (req: Request, res: Response) => {
     const calculatedStartDate = start_date || new Date(Math.min(...collectionDates)).toISOString().split('T')[0];
     const calculatedEndDate = end_date || new Date(Math.max(...collectionDates)).toISOString().split('T')[0];
 
-    // Insert payout record
+    // Insert payout record as PENDING
     const { data: payout, error: insertErr } = await supabase
       .from('farmer_payouts')
       .insert([{
@@ -179,17 +145,14 @@ export const processFarmerPayout = async (req: Request, res: Response) => {
         gross_amount: grossAmount,
         deductions: 0.00,
         net_amount: grossAmount,
-        status: 'PAID'
+        status: 'PENDING'
       }])
       .select()
       .single();
 
-    if (insertErr) {
-      console.error('CRITICAL: farmer_payouts insert error:', insertErr);
-      throw insertErr;
-    }
+    if (insertErr) throw insertErr;
 
-    // Update collection payout status to BILLED
+    // Lock collections as BILLED
     await supabase
       .from('collections')
       .update({
@@ -200,7 +163,7 @@ export const processFarmerPayout = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      message: `Successfully processed payout of KES ${grossAmount.toLocaleString()} for ${roundedLiters} Liters!`,
+      message: `Pending payout statement generated for KES ${grossAmount.toLocaleString()} (${roundedLiters} Liters).`,
       payout
     });
 
@@ -211,7 +174,35 @@ export const processFarmerPayout = async (req: Request, res: Response) => {
 };
 
 /**
- * 3. GET COMPLETED PAYOUT LOGS
+ * 3. MARK PENDING PAYOUT AS PAID
+ */
+export const markPayoutPaid = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'Payout ID required.' });
+
+    const { data, error } = await supabase
+      .from('farmer_payouts')
+      .update({ status: 'PAID' })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Payout statement marked as PAID successfully!',
+      payout: data
+    });
+  } catch (err: any) {
+    console.error('Mark payout paid error:', err);
+    return res.status(500).json({ message: err.message || 'Error updating payout status' });
+  }
+};
+
+/**
+ * 4. GET ALL PAYOUT LEDGER (COMPLETED & PENDING)
  */
 export const getPayoutHistory = async (req: Request, res: Response) => {
   try {
