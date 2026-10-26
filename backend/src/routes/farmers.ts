@@ -8,6 +8,46 @@ const supabase = createClient(
 
 const router = Router();
 
+// Helper function to generate unique next farmer code
+async function generateUniqueFarmerCode(isShareholder: boolean): Promise<string> {
+  const prefix = isShareholder ? 'AKLS' : 'KLF';
+  const sequenceName = isShareholder ? 'akls_seq' : 'klf_seq';
+
+  let nextVal = 1;
+  const { data: seqData, error: seqError } = await supabase.rpc('nextval_seq', { seq_name: sequenceName });
+
+  if (seqError || !seqData) {
+    const { data: rawSeq } = await supabase.rpc('exec_sql', { 
+      sql_query: `SELECT nextval('${sequenceName}') as val;` 
+    });
+    if (rawSeq && rawSeq[0]) nextVal = rawSeq[0].val;
+  } else {
+    nextVal = seqData;
+  }
+
+  let farmerCode = `${prefix}${nextVal.toString().padStart(4, '0')}`;
+
+  // Fallback collision loop: check if candidate code already exists in farmers table
+  let { data: existing } = await supabase
+    .from('farmers')
+    .select('id')
+    .eq('farmer_code', farmerCode)
+    .maybeSingle();
+
+  while (existing) {
+    nextVal++;
+    farmerCode = `${prefix}${nextVal.toString().padStart(4, '0')}`;
+    const { data: checkNext } = await supabase
+      .from('farmers')
+      .select('id')
+      .eq('farmer_code', farmerCode)
+      .maybeSingle();
+    existing = checkNext;
+  }
+
+  return farmerCode;
+}
+
 // Register a new farmer (Admin / Clerk)
 router.post('/', async (req: Request, res: Response) => {
   try {
@@ -21,12 +61,9 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Phone number is required.' });
     }
 
-    // Clean inputs to ensure empty strings don't collide on unique constraints
     const cleanPhone = phone_number.trim();
     const cleanIdNumber = id_number && id_number.trim() !== '' ? id_number.trim() : null;
     const isShareholder = Boolean(is_shareholder);
-    const sequenceName = isShareholder ? 'akls_seq' : 'klf_seq';
-    const prefix = isShareholder ? 'AKLS' : 'KLF';
 
     // 1. Privacy-safe pre-checks for existing Phone Number and ID Number
     const { data: existingPhone } = await supabase
@@ -55,22 +92,10 @@ router.post('/', async (req: Request, res: Response) => {
       }
     }
 
-    // 2. Fetch next numeric value from sequence
-    const { data: seqData, error: seqError } = await supabase.rpc('nextval_seq', { seq_name: sequenceName });
+    // 2. Generate guaranteed unique farmer code
+    const farmer_code = await generateUniqueFarmerCode(isShareholder);
 
-    let nextVal = 1;
-    if (seqError || !seqData) {
-      const { data: rawSeq } = await supabase.rpc('exec_sql', { 
-        sql_query: `SELECT nextval('${sequenceName}') as val;` 
-      });
-      if (rawSeq && rawSeq[0]) nextVal = rawSeq[0].val;
-    } else {
-      nextVal = seqData;
-    }
-
-    const farmer_code = `${prefix}${nextVal.toString().padStart(4, '0')}`;
-
-    // 3. Insert record with database unique error handling
+    // 3. Insert record
     const { data, error } = await supabase
       .from('farmers')
       .insert([
@@ -89,7 +114,6 @@ router.post('/', async (req: Request, res: Response) => {
     if (error) {
       console.error('Supabase error registering farmer:', error);
 
-      // Handle Postgres Unique Constraint Violation (Code 23505)
       if (error.code === '23505' || error.message?.includes('unique constraint')) {
         const msg = error.message.toLowerCase();
         if (msg.includes('phone_number')) {
@@ -98,10 +122,7 @@ router.post('/', async (req: Request, res: Response) => {
         if (msg.includes('id_number')) {
           return res.status(400).json({ error: `National ID "${cleanIdNumber}" is already registered in the system.` });
         }
-        if (msg.includes('farmer_code')) {
-          return res.status(400).json({ error: 'Farmer Code collision detected. Please try again.' });
-        }
-        return res.status(400).json({ error: 'A record with these unique details (Phone Number or National ID) already exists in the system.' });
+        return res.status(400).json({ error: 'A record with these unique details already exists in the system.' });
       }
 
       return res.status(400).json({ error: error.message });
