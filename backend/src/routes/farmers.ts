@@ -28,29 +28,29 @@ router.post('/', async (req: Request, res: Response) => {
     const sequenceName = isShareholder ? 'akls_seq' : 'klf_seq';
     const prefix = isShareholder ? 'AKLS' : 'KLF';
 
-    // 1. Explicit pre-checks for existing Phone Number and ID Number
+    // 1. Privacy-safe pre-checks for existing Phone Number and ID Number
     const { data: existingPhone } = await supabase
       .from('farmers')
-      .select('id, full_name')
+      .select('id')
       .eq('phone_number', cleanPhone)
       .maybeSingle();
 
     if (existingPhone) {
       return res.status(400).json({
-        error: `Phone number "${cleanPhone}" is already registered to farmer "${existingPhone.full_name}".`
+        error: `Phone number "${cleanPhone}" is already registered in the system.`
       });
     }
 
     if (cleanIdNumber) {
       const { data: existingId } = await supabase
         .from('farmers')
-        .select('id, full_name')
+        .select('id')
         .eq('id_number', cleanIdNumber)
         .maybeSingle();
 
       if (existingId) {
         return res.status(400).json({
-          error: `National ID "${cleanIdNumber}" is already registered to farmer "${existingId.full_name}".`
+          error: `National ID "${cleanIdNumber}" is already registered in the system.`
         });
       }
     }
@@ -93,15 +93,15 @@ router.post('/', async (req: Request, res: Response) => {
       if (error.code === '23505' || error.message?.includes('unique constraint')) {
         const msg = error.message.toLowerCase();
         if (msg.includes('phone_number')) {
-          return res.status(400).json({ error: 'Registration failed: This phone number is already registered to another farmer.' });
+          return res.status(400).json({ error: `Phone number "${cleanPhone}" is already registered in the system.` });
         }
         if (msg.includes('id_number')) {
-          return res.status(400).json({ error: 'Registration failed: This National ID number is already registered to another farmer.' });
+          return res.status(400).json({ error: `National ID "${cleanIdNumber}" is already registered in the system.` });
         }
         if (msg.includes('farmer_code')) {
-          return res.status(400).json({ error: 'Registration failed: Farmer Code collision detected. Please try again.' });
+          return res.status(400).json({ error: 'Farmer Code collision detected. Please try again.' });
         }
-        return res.status(400).json({ error: 'A farmer with these unique details (Phone Number or National ID) already exists.' });
+        return res.status(400).json({ error: 'A record with these unique details (Phone Number or National ID) already exists in the system.' });
       }
 
       return res.status(400).json({ error: error.message });
