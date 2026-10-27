@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 
+
 export const processOffloadReconciliation = async (req: Request, res: Response) => {
   try {
     const { driver_id, collection_date, station_liters, clerk_notes } = req.body;
@@ -18,17 +19,43 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
     const totalStationLiters = Math.round(parsedStationLiters * 100) / 100;
     const targetDate = collection_date || new Date().toISOString().split('T')[0];
 
-    // 1. Fetch collections for the driver on target date (only selecting existing columns)
+    // 1. Check if there was a previous reconciliation for this driver today to determine the time window
+    const { data: previousRecons, error: prevReconError } = await supabase
+      .from('reconciliations')
+      .select('created_at')
+      .eq('driver_id', parsedDriverId)
+      .eq('collection_date', targetDate)
+      .order('created_at', { ascending: false });
+
+    if (prevReconError) throw prevReconError;
+
+    // Determine the lower time boundary (latest previous reconciliation time today, or start of day)
+    let minTimestamp: string | null = null;
+    if (previousRecons && previousRecons.length > 0) {
+      minTimestamp = previousRecons[0].created_at;
+    }
+
+    // 2. Fetch collections for the driver
     const { data: collections, error: colError } = await supabase
       .from('collections')
       .select('volume_liters, collected_at')
-      .eq('driver_id', parsedDriverId);
+      .eq('driver_id', parsedDriverId)
+      .order('collected_at', { ascending: true });
 
     if (colError) throw colError;
 
+    // 3. Filter collections: must be on targetDate AND strictly after the last reconciliation today (if any)
     const matchingCollections = (collections || []).filter(c => {
       if (!c.collected_at) return false;
-      return c.collected_at.split('T')[0] === targetDate;
+      const colDateStr = c.collected_at.split('T')[0];
+      if (colDateStr !== targetDate) return false;
+
+      // If there was a previous offload today, only count collections collected *after* that offload
+      if (minTimestamp && c.collected_at <= minTimestamp) {
+        return false;
+      }
+
+      return true;
     });
 
     const rawDriverSum = matchingCollections.reduce((acc, c) => acc + Number(c.volume_liters || 0), 0);
@@ -40,7 +67,7 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
 
     const parsedClerkId = user?.id ? parseInt(user.id, 10) : null;
 
-    // 2. Insert into reconciliations table providing a safe fallback for route_code
+    // 4. Insert new reconciliation record (Append-only log)
     const insertPayload: any = {
       driver_id: parsedDriverId,
       collection_date: targetDate,
@@ -49,7 +76,8 @@ export const processOffloadReconciliation = async (req: Request, res: Response) 
       route_code: `ROUTE-${parsedDriverId}`,
       status: isFlagged ? 'VARIANCE_FLAGGED' : 'MATCHED',
       clerk_notes: clerk_notes || '',
-      clerk_id: !isNaN(parsedClerkId!) ? parsedClerkId : null
+      clerk_id: !isNaN(parsedClerkId!) ? parsedClerkId : null,
+      created_at: new Date().toISOString()
     };
 
     const { data: reconData, error: reconError } = await supabase
