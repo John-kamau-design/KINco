@@ -6,4 +6,6 @@ const router = (0, express_1.Router)();
 router.post('/register', authController_1.register);
 router.post('/login', authController_1.login);
 router.post('/check-signin', authController_1.signInCheck);
+router.get('/drivers', authController_1.getDrivers);
+router.get('/users', authController_1.getDrivers); // Alias endpoint for legacy client calls
 exports.default = router;

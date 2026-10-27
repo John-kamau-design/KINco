@@ -45,6 +45,8 @@ const farmers_1 = __importDefault(require("./routes/farmers"));
 const milk_1 = __importDefault(require("./routes/milk"));
 const api_1 = __importDefault(require("./routes/api"));
 const collection_1 = __importDefault(require("./routes/collection"));
+const reconciliation_1 = __importDefault(require("./routes/reconciliation"));
+const paymentRoutes_1 = __importDefault(require("./routes/paymentRoutes"));
 dotenv.config();
 const app = (0, express_1.default)();
 // Global Middlewares
@@ -59,8 +61,11 @@ app.get('/api-health', (_req, res) => {
 app.use('/api/auth', auth_1.default);
 app.use('/api/farmers', farmers_1.default);
 app.use('/api/milk', milk_1.default);
+app.use('/api/collections', collection_1.default); // Added plural support for clerk intake & farmer lookup
 app.use('/api/collection', collection_1.default);
+app.use('/api/reconciliation', reconciliation_1.default);
 app.use('/api', api_1.default);
+app.use('/api/payments', paymentRoutes_1.default);
 // 3. Fallback 404 handler specifically for unhandled /api requests
 app.use('/api/*', (_req, res) => {
     res.status(404).json({ message: 'API endpoint not found' });

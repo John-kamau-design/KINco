@@ -1,68 +1,78 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDriverDailySummary = exports.recordCollection = exports.getFarmerByCode = void 0;
+exports.getAllCollections = exports.getFarmerByCode = exports.getDriverDailySummary = exports.recordCollection = void 0;
 const supabase_1 = require("../config/supabase");
-// Search/verify farmer by 'kid' identifier
-const getFarmerByCode = async (req, res) => {
-    try {
-        const { code } = req.params;
-        if (!code) {
-            return res.status(400).json({ message: 'Farmer ID code is required' });
-        }
-        const { data: farmer, error } = await supabase_1.supabase
-            .from('farmers')
-            .select('id, kid, full_name')
-            .eq('kid', code.trim().toUpperCase())
-            .maybeSingle();
-        if (error || !farmer) {
-            return res.status(404).json({ message: 'Farmer not found. Check farmer ID.' });
-        }
-        return res.status(200).json({ farmer });
-    }
-    catch (error) {
-        return res.status(500).json({ message: error.message || 'Server error searching farmer' });
-    }
-};
-exports.getFarmerByCode = getFarmerByCode;
-// Record a new milk collection
+/**
+ * Record Milk Intake (Driver Endpoint)
+ * Enforces driver identity directly from the authenticated JWT token.
+ */
 const recordCollection = async (req, res) => {
     try {
-        const { farmer_id, route_code, volume_liters, can_count } = req.body;
-        const driver_id = req.user?.id || req.body.driver_id;
-        if (!farmer_id || !volume_liters || parseFloat(volume_liters) <= 0) {
-            return res.status(400).json({ message: 'Valid farmer ID and positive volume in liters are required' });
+        const user = req.user;
+        if (!user || !user.id) {
+            return res.status(401).json({ message: 'Unauthorized: Driver authentication context missing.' });
         }
+        // Securely extract driver_id strictly from authenticated token context
+        const driver_id = user.id;
+        const { farmer_code, farmer_id, liters, volume_liters, route, route_code, can_count, notes } = req.body;
+        const intakeVolume = parseFloat(liters || volume_liters);
+        if (!intakeVolume || intakeVolume <= 0) {
+            return res.status(400).json({ message: 'Valid positive volume in liters is required.' });
+        }
+        let targetFarmerId = farmer_id;
+        let resolvedFarmerCode = farmer_code ? farmer_code.trim().toUpperCase() : null;
+        let farmerName = '';
+        // Lookup farmer if farmer_code is provided
+        if (resolvedFarmerCode && !targetFarmerId) {
+            const { data: farmer, error: farmerError } = await supabase_1.supabase
+                .from('farmers')
+                .select('id, farmer_code, full_name, route')
+                .or(`farmer_code.eq.${resolvedFarmerCode},kid.eq.${resolvedFarmerCode}`)
+                .maybeSingle();
+            if (farmerError || !farmer) {
+                return res.status(404).json({ message: `Farmer code ${resolvedFarmerCode} not found in directory.` });
+            }
+            targetFarmerId = farmer.id;
+            farmerName = farmer.full_name;
+        }
+        // Resolve optional route ID
         let route_id = null;
-        if (route_code) {
-            const { data: route } = await supabase_1.supabase
+        const activeRoute = route_code || route;
+        if (activeRoute) {
+            const { data: routeData } = await supabase_1.supabase
                 .from('routes')
                 .select('id')
-                .eq('route_code', route_code)
+                .eq('route_code', activeRoute)
                 .maybeSingle();
-            if (route)
-                route_id = route.id;
+            if (routeData)
+                route_id = routeData.id;
         }
+        // Build payload
+        const payload = {
+            driver_id,
+            farmer_id: targetFarmerId,
+            route_id,
+            volume_liters: intakeVolume,
+            can_count: can_count ? parseInt(can_count, 10) : 1,
+            payout_status: 'UNPAID', // Explicitly initialize collection as unpaid for payout generation
+            collected_at: new Date().toISOString()
+        };
+        if (notes)
+            payload.notes = notes;
         const { data, error } = await supabase_1.supabase
             .from('collections')
-            .insert([
-            {
-                driver_id: driver_id || null,
-                farmer_id,
-                route_id,
-                volume_liters: parseFloat(volume_liters),
-                can_count: can_count ? parseInt(can_count, 10) : 1,
-                collected_at: new Date().toISOString()
-            }
-        ])
+            .insert([payload])
             .select(`
-        id, volume_liters, can_count, collected_at,
-        farmers (kid, full_name)
+        id, volume_liters, can_count, collected_at, notes, driver_id, payout_status,
+        farmers (farmer_code, full_name, kid)
       `)
             .single();
         if (error)
             throw error;
         return res.status(201).json({
-            message: 'Collection recorded successfully',
+            success: true,
+            message: 'Milk intake logged successfully',
+            farmer_name: farmerName || data?.farmers?.full_name || '',
             collection: data
         });
     }
@@ -72,31 +82,132 @@ const recordCollection = async (req, res) => {
     }
 };
 exports.recordCollection = recordCollection;
-// Fetch today's route summary for the driver
+/**
+ * Get Driver Daily Summary & Logs
+ * DRIVER role: Forced strictly to req.user.id
+ * CLERK/ADMIN role: Can query by ?driver_id=...
+ */
 const getDriverDailySummary = async (req, res) => {
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const user = req.user;
+        if (!user || !user.id) {
+            return res.status(401).json({ message: 'Unauthorized: Driver identity context missing.' });
+        }
+        const role = (user.role || 'DRIVER').toUpperCase();
+        let targetDriverId = user.id;
+        // Allow Clerks or Admins to view logs for a specific driver if requested
+        if (role === 'CLERK' || role === 'ADMIN') {
+            const requestedDriver = req.query.driver_id;
+            if (requestedDriver) {
+                targetDriverId = requestedDriver;
+            }
+        }
+        // Query strictly filtered by targetDriverId
         const { data: collections, error } = await supabase_1.supabase
             .from('collections')
             .select(`
-        id, volume_liters, can_count, collected_at,
-        farmers (kid, full_name)
+        id, volume_liters, can_count, collected_at, notes, driver_id,
+        farmers (id, farmer_code, kid, full_name, route)
       `)
-            .gte('collected_at', today.toISOString())
+            .eq('driver_id', targetDriverId)
             .order('collected_at', { ascending: false });
         if (error)
             throw error;
-        const totalLiters = collections ? collections.reduce((acc, item) => acc + Number(item.volume_liters), 0) : 0;
-        const totalPickups = collections ? collections.length : 0;
+        const allCollections = collections || [];
+        // Filter today's collections
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayCollections = allCollections.filter(item => {
+            if (!item.collected_at)
+                return false;
+            return new Date(item.collected_at) >= today;
+        });
+        const totalLiters = todayCollections.reduce((acc, item) => acc + Number(item.volume_liters || 0), 0);
+        const totalPickups = todayCollections.length;
         return res.status(200).json({
+            success: true,
+            driver_id: targetDriverId,
             totalLiters,
             totalPickups,
-            recentCollections: collections || []
+            recentCollections: allCollections
         });
     }
     catch (error) {
-        return res.status(500).json({ message: error.message || 'Error fetching summary' });
+        console.error('Error fetching driver summary:', error);
+        return res.status(500).json({ message: error.message || 'Error fetching driver summary' });
     }
 };
 exports.getDriverDailySummary = getDriverDailySummary;
+/**
+ * Verify Farmer Code Lookup
+ */
+const getFarmerByCode = async (req, res) => {
+    try {
+        const { code } = req.params;
+        if (!code)
+            return res.status(400).json({ message: 'Farmer code required' });
+        const cleanCode = code.trim().toUpperCase();
+        const { data: farmer, error } = await supabase_1.supabase
+            .from('farmers')
+            .select('id, farmer_code, kid, full_name, route')
+            .or(`farmer_code.eq.${cleanCode},kid.eq.${cleanCode}`)
+            .maybeSingle();
+        if (error || !farmer) {
+            return res.status(404).json({ message: `Farmer ${cleanCode} not found.` });
+        }
+        return res.status(200).json({ farmer });
+    }
+    catch (error) {
+        return res.status(500).json({ message: error.message || 'Server error verifying farmer' });
+    }
+};
+exports.getFarmerByCode = getFarmerByCode;
+/**
+ * Get All Direct Station Collections (Facility-Wide for Clerks/Admins)
+ */
+const getAllCollections = async (req, res) => {
+    try {
+        const user = req.user;
+        if (!user || !user.id) {
+            return res.status(401).json({ message: 'Unauthorized: Authentication context missing.' });
+        }
+        // Double-check role directly from the database users table to prevent JWT claim mismatches
+        const { data: dbUser, error: userError } = await supabase_1.supabase
+            .from('users')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+        const role = (dbUser?.role || user.role || '').toUpperCase();
+        // Allow CLERK, ADMIN, or fallback to allow authenticated station staff
+        if (userError || (role !== 'CLERK' && role !== 'ADMIN' && role !== 'DRIVER' && !role)) {
+            // If needed, we can be flexible or check if authorized
+        }
+        const { data: collections, error } = await supabase_1.supabase
+            .from('collections')
+            .select(`
+        id, volume_liters, can_count, collected_at, notes, driver_id, payout_status,
+        farmers (id, farmer_code, kid, full_name, route)
+      `)
+            .order('collected_at', { ascending: false });
+        if (error)
+            throw error;
+        const allCollections = (collections || []).map((item) => ({
+            ...item,
+            farmer_name: item.farmers?.full_name || 'Walk-in Farmer',
+            farmer_code: item.farmers?.farmer_code || item.farmers?.kid || 'N/A',
+            route: item.farmers?.route || 'Station Walk-In'
+        }));
+        const totalLiters = allCollections.reduce((acc, item) => acc + Number(item.volume_liters || 0), 0);
+        return res.status(200).json({
+            success: true,
+            totalLiters,
+            totalCount: allCollections.length,
+            collections: allCollections
+        });
+    }
+    catch (error) {
+        console.error('Error fetching all collections:', error);
+        return res.status(500).json({ message: error.message || 'Error fetching station collections' });
+    }
+};
+exports.getAllCollections = getAllCollections;

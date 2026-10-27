@@ -3,11 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.register = exports.signInCheck = exports.login = exports.checkSignIn = exports.loginUser = exports.registerUser = void 0;
+exports.register = exports.signInCheck = exports.login = exports.getDrivers = exports.loginUser = exports.registerUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const supabase_1 = require("../config/supabase");
-const JWT_SECRET = process.env.JWT_SECRET || 'kinco-secret-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'kinco_secret_key_2026';
 const registerUser = async (req, res) => {
     try {
         const full_name = req.body.full_name || req.body.fullName;
@@ -99,28 +99,83 @@ const loginUser = async (req, res) => {
     }
 };
 exports.loginUser = loginUser;
-const checkSignIn = async (req, res) => {
+const getDrivers = async (req, res) => {
     try {
-        const national_id = req.body.national_id || req.body.nationalId;
-        if (!national_id) {
-            return res.status(400).json({ message: 'National ID is required' });
-        }
-        const { data: user } = await supabase_1.supabase
+        // 1. Fetch all users using columns saved during registerUser
+        const { data: allUsers, error: userError } = await supabase_1.supabase
             .from('users')
-            .select('national_id, role')
-            .eq('national_id', national_id)
-            .maybeSingle();
-        if (!user) {
-            return res.status(404).json({ message: 'National ID not registered' });
+            .select('id, full_name, national_id, phone_number, role');
+        if (!userError && allUsers && allUsers.length > 0) {
+            // Helper to cleanly extract display name
+            const formatUserName = (u) => {
+                if (u.full_name && u.full_name.trim() !== '')
+                    return u.full_name;
+                if (u.national_id)
+                    return `Driver (${u.national_id})`;
+                if (u.phone_number)
+                    return `Driver (${u.phone_number})`;
+                return `Driver (${String(u.id).substring(0, 8)})`;
+            };
+            // Filter for DRIVER role (case-insensitive)
+            const driverUsers = allUsers.filter(u => {
+                const role = String(u.role || '').toUpperCase();
+                return role === 'DRIVER' || role === 'DRIVER_ROLE';
+            });
+            const driversToReturn = driverUsers.length > 0 ? driverUsers : allUsers;
+            const formattedDrivers = driversToReturn.map(u => ({
+                id: u.id,
+                full_name: formatUserName(u),
+                national_id: u.national_id || '',
+                phone_number: u.phone_number || '',
+                role: u.role
+            }));
+            return res.status(200).json({
+                success: true,
+                drivers: formattedDrivers,
+                users: formattedDrivers
+            });
         }
-        return res.status(200).json({ role: user.role });
+        // 2. Fallback: Lookup driver_ids from collections table if users query returned empty
+        const { data: colData } = await supabase_1.supabase
+            .from('collections')
+            .select('driver_id');
+        const uniqueDriverIds = Array.from(new Set((colData || []).map(c => c.driver_id).filter(Boolean)));
+        if (uniqueDriverIds.length === 0) {
+            return res.status(200).json({ success: true, drivers: [], users: [] });
+        }
+        // Map matched IDs back to full names
+        const { data: matchedUsers } = await supabase_1.supabase
+            .from('users')
+            .select('id, full_name, national_id, phone_number')
+            .in('id', uniqueDriverIds);
+        const drivers = uniqueDriverIds.map(id => {
+            const match = (matchedUsers || []).find(u => String(u.id) === String(id));
+            const displayName = match
+                ? (match.full_name || match.national_id || match.phone_number)
+                : null;
+            return {
+                id,
+                full_name: displayName || `Driver (${String(id).substring(0, 8)})`
+            };
+        });
+        return res.status(200).json({
+            success: true,
+            drivers,
+            users: drivers
+        });
     }
     catch (error) {
-        return res.status(500).json({ message: 'Server error checking sign-in eligibility' });
+        console.error('Error fetching drivers:', error);
+        return res.status(200).json({
+            success: false,
+            drivers: [],
+            users: [],
+            message: error.message || 'Error fetching active drivers list'
+        });
     }
 };
-exports.checkSignIn = checkSignIn;
+exports.getDrivers = getDrivers;
 // Aliases to ensure backward compatibility with backend/src/routes/auth.ts imports
 exports.login = exports.loginUser;
-exports.signInCheck = exports.checkSignIn;
+exports.signInCheck = exports.loginUser;
 exports.register = exports.registerUser;
