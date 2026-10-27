@@ -383,52 +383,53 @@
       }
     }
 
-    // Load direct station intakes table
-    async function loadDirectIntakes() {
-      const tbody = document.getElementById('direct-intakes-table-body');
-      if (!tbody) return;
+async function loadDirectIntakes() {
+  const tableBody = document.querySelector('#direct-intakes-table-body'); // Adjust selector to match your HTML table body ID
+  const directIntakeMetric = document.querySelector('#direct-intake-metric'); // Adjust to your stat card ID
+  const combinedMilkMetric = document.querySelector('#total-combined-metric'); // Adjust to your grand total card ID
 
-      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+  try {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const res = await fetch('/api/collections/all', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
 
-      try {
-        const res = await fetch('/api/collections', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+    if (!res.ok) throw new Error('Failed to fetch station collections');
 
-        if (!res.ok) throw new Error('Failed to load direct intakes');
+    const data = await res.json();
+    const collections = data.collections || [];
 
-        const data = await res.json();
-        directIntakesCache = Array.isArray(data) ? data : (data.collections || data.data || []);
-
-        loadStationSummaryMetrics();
-
-        if (directIntakesCache.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500 font-medium">No direct walk-in intakes recorded</td></tr>`;
-          return;
-        }
-
-        tbody.innerHTML = directIntakesCache.map((item) => {
-          const timeStr = item.collected_at ? new Date(item.collected_at).toLocaleString() : 'N/A';
-          const farmerName = item.farmer_name || item.farmers?.full_name || item.farmer_code || `Farmer #${item.farmer_id || ''}`;
-          const route = item.route || 'Station Walk-In';
-          const liters = Number(item.volume_liters || 0).toFixed(2);
-          const clerk = item.clerk_name || 'Clerk';
-
-          return `
-            <tr class="hover:bg-slate-700/30 transition">
-              <td class="py-2.5 px-3 text-slate-300 font-mono">${timeStr}</td>
-              <td class="py-2.5 px-3 font-bold text-slate-100">${farmerName}</td>
-              <td class="py-2.5 px-3 text-slate-300">${route}</td>
-              <td class="py-2.5 px-3 font-extrabold text-emerald-400">${liters} L</td>
-              <td class="py-2.5 px-3 text-slate-400">${clerk}</td>
-            </tr>
-          `;
-        }).join('');
-      } catch (err) {
-        console.error('Error fetching direct intakes:', err);
-        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-red-400 font-bold">Error loading direct intakes table</td></tr>`;
+    // 1. Update metric cards
+    if (directIntakeMetric) directIntakeMetric.textContent = `${data.totalLiters.toFixed(2)} L`;
+    
+    // 2. Render table rows
+    if (tableBody) {
+      if (collections.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-400">No milk intake records found.</td></tr>`;
+        return;
       }
+
+      tableBody.innerHTML = collections.map(item => `
+        <tr>
+          <td class="py-3 px-4">${new Date(item.collected_at).toLocaleString()}</td>
+          <td class="py-3 px-4 font-medium text-white">${item.farmer_name} <span class="text-xs text-gray-400">(${item.farmer_code})</span></td>
+          <td class="py-3 px-4">${item.route}</td>
+          <td class="py-3 px-4 font-semibold text-emerald-400">${item.volume_liters} L</td>
+          <td class="py-3 px-4 text-gray-300">Station Clerk</td>
+        </tr>
+      `).join('');
     }
+  } catch (err) {
+    console.error('Error loading direct intakes:', err);
+    if (tableBody) {
+      tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-400">Error loading direct intakes table</td></tr>`;
+    }
+  }
+}
+
+// Trigger on page load and refresh button click
+document.addEventListener('DOMContentLoaded', loadDirectIntakes);
+document.querySelector('#refresh-log-btn')?.addEventListener('click', loadDirectIntakes);
 
     // Tab Navigation Switcher
     function switchTab(tabName) {

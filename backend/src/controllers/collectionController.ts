@@ -202,20 +202,6 @@ export const getAllCollections = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Unauthorized: Authentication context missing.' });
     }
 
-    // Double-check role directly from the database users table to prevent JWT claim mismatches
-    const { data: dbUser, error: userError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    const role = (dbUser?.role || user.role || '').toUpperCase();
-
-    // Allow CLERK, ADMIN, or fallback to allow authenticated station staff
-    if (userError || (role !== 'CLERK' && role !== 'ADMIN' && role !== 'DRIVER' && !role)) {
-      // If needed, we can be flexible or check if authorized
-    }
-
     const { data: collections, error } = await supabase
       .from('collections')
       .select(`
@@ -227,13 +213,18 @@ export const getAllCollections = async (req: Request, res: Response) => {
     if (error) throw error;
 
     const allCollections = (collections || []).map((item: any) => ({
-      ...item,
+      id: item.id,
+      volume_liters: Number(item.volume_liters || 0),
+      can_count: item.can_count || 1,
+      collected_at: item.collected_at,
+      notes: item.notes || '',
+      payout_status: item.payout_status,
       farmer_name: item.farmers?.full_name || 'Walk-in Farmer',
       farmer_code: item.farmers?.farmer_code || item.farmers?.kid || 'N/A',
       route: item.farmers?.route || 'Station Walk-In'
     }));
 
-    const totalLiters = allCollections.reduce((acc, item) => acc + Number(item.volume_liters || 0), 0);
+    const totalLiters = allCollections.reduce((acc, item) => acc + item.volume_liters, 0);
 
     return res.status(200).json({
       success: true,
