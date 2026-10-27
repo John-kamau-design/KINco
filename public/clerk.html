@@ -20,7 +20,7 @@
       <!-- Direct Reconciliation Navigation Button -->
       <a href="/reconciliation.html" 
          class="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-lg border border-emerald-400/40 shadow-md transition">
-        <svg class="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg class="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <span>Offload Reconciliation</span>
@@ -29,7 +29,7 @@
       <!-- Direct Payouts Navigation Button -->
       <a href="/payments.html" 
          class="inline-flex items-center space-x-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs px-4 py-2 rounded-lg border border-emerald-400/40 shadow-md transition">
-        <svg class="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg class="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <span>Payouts (45 KES/L)</span>
@@ -41,7 +41,7 @@
   </header>
 
   <!-- TOP NAVIGATION TABS -->
-  <div class="max-w-4xl mx-auto px-6 pt-6">
+  <div class="max-w-5xl mx-auto px-6 pt-6">
     <div class="flex border-b border-slate-700 space-x-2 overflow-x-auto">
       <button id="tab-btn-overview" onclick="switchTab('overview')" 
               class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800 whitespace-nowrap">
@@ -69,28 +69,36 @@
   </div>
 
   <!-- Main Container -->
-  <main class="max-w-4xl mx-auto p-6 space-y-8">
+  <main class="max-w-5xl mx-auto p-6 space-y-8">
 
     <!-- VIEW 1: STATION OVERVIEW & ONBOARDING -->
     <div id="view-overview" class="space-y-8">
 
-      <!-- Station Overview Cards & Grand Totals -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg">
-          <p class="text-[10px] text-slate-400 font-bold uppercase">Direct Station Intake</p>
-          <p id="stat-direct-intake" class="text-lg font-black text-emerald-400 mt-1 font-mono">0.00 L</p>
+      <!-- Multi-Timeframe Station Overview Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-2 h-full bg-emerald-500"></div>
+          <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Today Total Collected</p>
+          <p id="stat-today-intake" class="text-2xl font-black text-emerald-400 mt-2 font-mono">0.00 L</p>
+          <p class="text-[10px] text-slate-500 mt-1">Real-time daily intake</p>
         </div>
-        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg">
-          <p class="text-[10px] text-slate-400 font-bold uppercase">Route Offload Intake</p>
-          <p id="stat-route-intake" class="text-lg font-black text-emerald-400 mt-1 font-mono">0.00 L</p>
+
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
+          <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Past 7 Days</p>
+          <p id="stat-7day-intake" class="text-2xl font-black text-emerald-300 mt-2 font-mono">0.00 L</p>
+          <p class="text-[10px] text-slate-500 mt-1">Weekly running volume</p>
         </div>
-        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg border-emerald-500/40">
-          <p class="text-[10px] text-emerald-300 font-extrabold uppercase">Total Combined Milk</p>
-          <p id="stat-grand-total" class="text-lg font-black text-white mt-1 font-mono">0.00 L</p>
+
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
+          <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Past 30 Days</p>
+          <p id="stat-30day-intake" class="text-2xl font-black text-emerald-200 mt-2 font-mono">0.00 L</p>
+          <p class="text-[10px] text-slate-500 mt-1">Monthly total intake</p>
         </div>
-        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg flex flex-col justify-between">
-          <p class="text-[10px] text-slate-400 font-bold uppercase">Station Status</p>
-          <p class="text-sm font-bold text-emerald-400 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Active</p>
+
+        <div class="bg-slate-800 p-5 rounded-2xl border border-emerald-500/40 shadow-lg bg-gradient-to-br from-slate-800 to-slate-900">
+          <p class="text-[11px] text-emerald-400 font-extrabold uppercase tracking-wider">Grand Total Intake</p>
+          <p id="stat-grand-total" class="text-2xl font-black text-white mt-2 font-mono">0.00 L</p>
+          <p class="text-[10px] text-emerald-500/80 mt-1">Facility all-time history</p>
         </div>
       </div>
 
@@ -250,7 +258,7 @@
             <h2 class="text-base font-bold text-emerald-400">Direct Station Walk-In Logs</h2>
             <p class="text-xs text-slate-400">Milk delivered directly by farmers at the station intake desk.</p>
           </div>
-          <button onclick="loadDirectIntakes()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded-lg font-bold text-slate-200 transition">
+          <button id="refresh-log-btn" onclick="loadDirectIntakes()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded-lg font-bold text-slate-200 transition">
             Refresh Log
           </button>
         </div>
@@ -321,7 +329,6 @@
 
   <script>
     let allFarmersCache = [];
-    let directIntakesCache = [];
 
     // Verify session and load summary data
     document.addEventListener('DOMContentLoaded', () => {
@@ -336,100 +343,102 @@
         document.getElementById('clerk-user-display').innerText = `${user.full_name || 'Clerk'} (${user.role})`;
       } catch (e) {}
 
-      loadStationSummaryMetrics();
       loadDirectIntakes();
     });
 
-    // Fetch and aggregate station totals (Direct Intakes + Route Offloads)
-    async function loadStationSummaryMetrics() {
-      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+    // Fetch and calculate multi-timeframe station totals (Today, 7-Day, 30-Day, Grand Total)
+    async function loadDirectIntakes() {
+      const tableBody = document.querySelector('#direct-intakes-table-body');
       
-      let directTotal = 0;
-      let routeTotal = 0;
+      const todayEl = document.getElementById('stat-today-intake');
+      const day7El = document.getElementById('stat-7day-intake');
+      const day30El = document.getElementById('stat-30day-intake');
+      const grandEl = document.getElementById('stat-grand-total');
 
       try {
-        // 1. Fetch direct collections
+        const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
         const res = await fetch('/api/collections/all', {
-        headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (colRes.ok) {
-          const colData = await colRes.json();
-          const collections = Array.isArray(colData) ? colData : (colData.collections || colData.data || []);
-          directTotal = collections.reduce((acc, c) => acc + Number(c.volume_liters || 0), 0);
-        }
-
-        // 2. Fetch route reconciliations
-        const reconRes = await fetch('/api/reconciliation/history', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (reconRes.ok) {
-          const reconData = await reconRes.json();
-          const logs = reconData.reconciliations || reconData.logs || (Array.isArray(reconData) ? reconData : []);
-          routeTotal = logs.reduce((acc, r) => acc + Number(r.total_station_liters || 0), 0);
+
+        if (!res.ok) throw new Error('Failed to fetch station collections');
+
+        const data = await res.json();
+        const collections = data.collections || (Array.isArray(data) ? data : []);
+
+        // --- Calculate Time Bucket Aggregations ---
+        const now = new Date();
+
+        // Midnight today (00:00:00)
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        // 7 days ago timestamp
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 7);
+
+        // 30 days ago timestamp
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+
+        let todayLiters = 0;
+        let past7DaysLiters = 0;
+        let past30DaysLiters = 0;
+        let grandTotalLiters = 0;
+
+        collections.forEach(item => {
+          const vol = Number(item.volume_liters || 0);
+          const intakeDate = new Date(item.collected_at || item.created_at);
+
+          // All-time Grand Total
+          grandTotalLiters += vol;
+
+          // Past 30 Days
+          if (intakeDate >= thirtyDaysAgo) {
+            past30DaysLiters += vol;
+          }
+
+          // Past 7 Days
+          if (intakeDate >= sevenDaysAgo) {
+            past7DaysLiters += vol;
+          }
+
+          // Today
+          if (intakeDate >= startOfToday) {
+            todayLiters += vol;
+          }
+        });
+
+        // --- Render Stat Cards ---
+        if (todayEl) todayEl.innerText = `${todayLiters.toFixed(2)} L`;
+        if (day7El) day7El.innerText = `${past7DaysLiters.toFixed(2)} L`;
+        if (day30El) day30El.innerText = `${past30DaysLiters.toFixed(2)} L`;
+        if (grandEl) grandEl.innerText = `${grandTotalLiters.toFixed(2)} L`;
+
+        // --- Render Table Rows ---
+        if (tableBody) {
+          if (collections.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400">No milk intake records found.</td></tr>`;
+            return;
+          }
+
+          tableBody.innerHTML = collections.map(item => `
+            <tr class="hover:bg-slate-700/30 transition">
+              <td class="py-3 px-4 text-slate-300">${new Date(item.collected_at || item.created_at).toLocaleString()}</td>
+              <td class="py-3 px-4 font-medium text-white">${item.farmer_name || 'Walk-in Farmer'} <span class="text-xs text-slate-400">(${item.farmer_code || 'N/A'})</span></td>
+              <td class="py-3 px-4 text-slate-300">${item.route || 'Station Walk-In'}</td>
+              <td class="py-3 px-4 font-semibold text-emerald-400 font-mono">${Number(item.volume_liters || 0).toFixed(1)} L</td>
+              <td class="py-3 px-4 text-slate-400">Station Intake</td>
+            </tr>
+          `).join('');
         }
 
-        const grandTotal = directTotal + routeTotal;
-
-        const directEl = document.getElementById('stat-direct-intake');
-        const routeEl = document.getElementById('stat-route-intake');
-        const grandEl = document.getElementById('stat-grand-total');
-
-        if (directEl) directEl.innerText = `${directTotal.toFixed(2)} L`;
-        if (routeEl) routeEl.innerText = `${routeTotal.toFixed(2)} L`;
-        if (grandEl) grandEl.innerText = `${grandTotal.toFixed(2)} L`;
-
       } catch (err) {
-        console.error('Error loading station summary metrics:', err);
+        console.error('Error loading direct intakes:', err);
+        if (tableBody) {
+          tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-red-400 font-semibold">Error loading direct intakes table</td></tr>`;
+        }
       }
     }
-
-async function loadDirectIntakes() {
-  const tableBody = document.querySelector('#direct-intakes-table-body'); // Adjust selector to match your HTML table body ID
-  const directIntakeMetric = document.querySelector('#direct-intake-metric'); // Adjust to your stat card ID
-  const combinedMilkMetric = document.querySelector('#total-combined-metric'); // Adjust to your grand total card ID
-
-  try {
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    const res = await fetch('/api/collections/all', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    if (!res.ok) throw new Error('Failed to fetch station collections');
-
-    const data = await res.json();
-    const collections = data.collections || [];
-
-    // 1. Update metric cards
-    if (directIntakeMetric) directIntakeMetric.textContent = `${data.totalLiters.toFixed(2)} L`;
-    
-    // 2. Render table rows
-    if (tableBody) {
-      if (collections.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-400">No milk intake records found.</td></tr>`;
-        return;
-      }
-
-      tableBody.innerHTML = collections.map(item => `
-        <tr>
-          <td class="py-3 px-4">${new Date(item.collected_at).toLocaleString()}</td>
-          <td class="py-3 px-4 font-medium text-white">${item.farmer_name} <span class="text-xs text-gray-400">(${item.farmer_code})</span></td>
-          <td class="py-3 px-4">${item.route}</td>
-          <td class="py-3 px-4 font-semibold text-emerald-400">${item.volume_liters} L</td>
-          <td class="py-3 px-4 text-gray-300">Station Clerk</td>
-        </tr>
-      `).join('');
-    }
-  } catch (err) {
-    console.error('Error loading direct intakes:', err);
-    if (tableBody) {
-      tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-400">Error loading direct intakes table</td></tr>`;
-    }
-  }
-}
-
-// Trigger on page load and refresh button click
-document.addEventListener('DOMContentLoaded', loadDirectIntakes);
-document.querySelector('#refresh-log-btn')?.addEventListener('click', loadDirectIntakes);
 
     // Tab Navigation Switcher
     function switchTab(tabName) {
@@ -441,28 +450,28 @@ document.querySelector('#refresh-log-btn')?.addEventListener('click', loadDirect
       const btnIntake = document.getElementById('tab-btn-intake');
       const btnFarmers = document.getElementById('tab-btn-farmers');
 
-      // Hide all views first
+      // Hide all views
       viewOverview.classList.add('hidden');
       viewIntake.classList.add('hidden');
       viewFarmers.classList.add('hidden');
 
       // Reset button styles
-      btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
-      btnIntake.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
-      btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
+      btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 whitespace-nowrap';
+      btnIntake.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 whitespace-nowrap';
+      btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 whitespace-nowrap';
 
       if (tabName === 'intake') {
         viewIntake.classList.remove('hidden');
-        btnIntake.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
+        btnIntake.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800 whitespace-nowrap';
         loadDirectIntakes();
       } else if (tabName === 'farmers') {
         viewFarmers.classList.remove('hidden');
-        btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
+        btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800 whitespace-nowrap';
         loadFarmersDirectory();
       } else {
         viewOverview.classList.remove('hidden');
-        btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
-        loadStationSummaryMetrics();
+        btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800 whitespace-nowrap';
+        loadDirectIntakes();
       }
     }
 
