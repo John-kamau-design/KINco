@@ -69,24 +69,28 @@
   </div>
 
   <!-- Main Container -->
-  <main class="max-w-4xl mx-auto p-6">
+  <main class="max-w-4xl mx-auto p-6 space-y-8">
 
     <!-- VIEW 1: STATION OVERVIEW & ONBOARDING -->
     <div id="view-overview" class="space-y-8">
 
-      <!-- Station Overview Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
-          <p class="text-xs text-slate-400 font-medium uppercase">Station Status</p>
-          <p class="text-2xl font-bold text-emerald-400 mt-1">Active</p>
+      <!-- Station Overview Cards & Grand Totals -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg">
+          <p class="text-[10px] text-slate-400 font-bold uppercase">Direct Station Intake</p>
+          <p id="stat-direct-intake" class="text-lg font-black text-emerald-400 mt-1 font-mono">0.00 L</p>
         </div>
-        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
-          <p class="text-xs text-slate-400 font-medium uppercase">Today's Intake Target</p>
-          <p class="text-2xl font-bold text-white mt-1">12,500 L</p>
+        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg">
+          <p class="text-[10px] text-slate-400 font-bold uppercase">Route Offload Intake</p>
+          <p id="stat-route-intake" class="text-lg font-black text-emerald-400 mt-1 font-mono">0.00 L</p>
         </div>
-        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
-          <p class="text-xs text-slate-400 font-medium uppercase">Quick Access</p>
-          <a href="/payments.html" class="inline-block text-sm text-emerald-400 hover:underline font-semibold mt-2">Go to payment Portal &rarr;</a>
+        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg border-emerald-500/40">
+          <p class="text-[10px] text-emerald-300 font-extrabold uppercase">Total Combined Milk</p>
+          <p id="stat-grand-total" class="text-lg font-black text-white mt-1 font-mono">0.00 L</p>
+        </div>
+        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg flex flex-col justify-between">
+          <p class="text-[10px] text-slate-400 font-bold uppercase">Station Status</p>
+          <p class="text-sm font-bold text-emerald-400 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Active</p>
         </div>
       </div>
 
@@ -238,6 +242,38 @@
           </button>
         </form>
       </section>
+
+      <!-- DIRECT STATION INTAKE AUDIT TABLE -->
+      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+          <div>
+            <h2 class="text-base font-bold text-emerald-400">Direct Station Walk-In Logs</h2>
+            <p class="text-xs text-slate-400">Milk delivered directly by farmers at the station intake desk.</p>
+          </div>
+          <button onclick="loadDirectIntakes()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded-lg font-bold text-slate-200 transition">
+            Refresh Log
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-700 text-slate-400 text-[11px] uppercase tracking-wider bg-slate-900/60">
+                <th class="py-2.5 px-3">Time / Date</th>
+                <th class="py-2.5 px-3">Farmer</th>
+                <th class="py-2.5 px-3">Route</th>
+                <th class="py-2.5 px-3">Liters</th>
+                <th class="py-2.5 px-3">Clerk</th>
+              </tr>
+            </thead>
+            <tbody id="direct-intakes-table-body" class="divide-y divide-slate-700/50 text-xs text-slate-200">
+              <tr>
+                <td colspan="5" class="py-6 text-center text-slate-500 font-medium">Loading direct station intakes...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
 
     <!-- VIEW 3: DEDICATED FARMERS DIRECTORY TAB -->
@@ -285,8 +321,9 @@
 
   <script>
     let allFarmersCache = [];
+    let directIntakesCache = [];
 
-    // Verify session
+    // Verify session and load summary data
     document.addEventListener('DOMContentLoaded', () => {
       const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
       const userStr = localStorage.getItem('kinco_user');
@@ -298,7 +335,100 @@
         const user = JSON.parse(userStr);
         document.getElementById('clerk-user-display').innerText = `${user.full_name || 'Clerk'} (${user.role})`;
       } catch (e) {}
+
+      loadStationSummaryMetrics();
+      loadDirectIntakes();
     });
+
+    // Fetch and aggregate station totals (Direct Intakes + Route Offloads)
+    async function loadStationSummaryMetrics() {
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+      
+      let directTotal = 0;
+      let routeTotal = 0;
+
+      try {
+        // 1. Fetch direct collections
+        const colRes = await fetch('/api/collections', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (colRes.ok) {
+          const colData = await colRes.json();
+          const collections = Array.isArray(colData) ? colData : (colData.collections || colData.data || []);
+          directTotal = collections.reduce((acc, c) => acc + Number(c.volume_liters || 0), 0);
+        }
+
+        // 2. Fetch route reconciliations
+        const reconRes = await fetch('/api/reconciliation/history', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (reconRes.ok) {
+          const reconData = await reconRes.json();
+          const logs = reconData.reconciliations || reconData.logs || (Array.isArray(reconData) ? reconData : []);
+          routeTotal = logs.reduce((acc, r) => acc + Number(r.total_station_liters || 0), 0);
+        }
+
+        const grandTotal = directTotal + routeTotal;
+
+        const directEl = document.getElementById('stat-direct-intake');
+        const routeEl = document.getElementById('stat-route-intake');
+        const grandEl = document.getElementById('stat-grand-total');
+
+        if (directEl) directEl.innerText = `${directTotal.toFixed(2)} L`;
+        if (routeEl) routeEl.innerText = `${routeTotal.toFixed(2)} L`;
+        if (grandEl) grandEl.innerText = `${grandTotal.toFixed(2)} L`;
+
+      } catch (err) {
+        console.error('Error loading station summary metrics:', err);
+      }
+    }
+
+    // Load direct station intakes table
+    async function loadDirectIntakes() {
+      const tbody = document.getElementById('direct-intakes-table-body');
+      if (!tbody) return;
+
+      const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+
+      try {
+        const res = await fetch('/api/collections', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error('Failed to load direct intakes');
+
+        const data = await res.json();
+        directIntakesCache = Array.isArray(data) ? data : (data.collections || data.data || []);
+
+        loadStationSummaryMetrics();
+
+        if (directIntakesCache.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500 font-medium">No direct walk-in intakes recorded</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = directIntakesCache.map((item) => {
+          const timeStr = item.collected_at ? new Date(item.collected_at).toLocaleString() : 'N/A';
+          const farmerName = item.farmer_name || item.farmers?.full_name || item.farmer_code || `Farmer #${item.farmer_id || ''}`;
+          const route = item.route || 'Station Walk-In';
+          const liters = Number(item.volume_liters || 0).toFixed(2);
+          const clerk = item.clerk_name || 'Clerk';
+
+          return `
+            <tr class="hover:bg-slate-700/30 transition">
+              <td class="py-2.5 px-3 text-slate-300 font-mono">${timeStr}</td>
+              <td class="py-2.5 px-3 font-bold text-slate-100">${farmerName}</td>
+              <td class="py-2.5 px-3 text-slate-300">${route}</td>
+              <td class="py-2.5 px-3 font-extrabold text-emerald-400">${liters} L</td>
+              <td class="py-2.5 px-3 text-slate-400">${clerk}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Error fetching direct intakes:', err);
+        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-red-400 font-bold">Error loading direct intakes table</td></tr>`;
+      }
+    }
 
     // Tab Navigation Switcher
     function switchTab(tabName) {
@@ -323,6 +453,7 @@
       if (tabName === 'intake') {
         viewIntake.classList.remove('hidden');
         btnIntake.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
+        loadDirectIntakes();
       } else if (tabName === 'farmers') {
         viewFarmers.classList.remove('hidden');
         btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
@@ -330,6 +461,7 @@
       } else {
         viewOverview.classList.remove('hidden');
         btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-slate-800';
+        loadStationSummaryMetrics();
       }
     }
 
@@ -495,6 +627,8 @@
         status.classList.remove('hidden');
         document.getElementById('clerk-intake-form').reset();
         document.getElementById('verify-badge').classList.add('hidden');
+
+        loadDirectIntakes();
       } catch (err) {
         status.className = 'p-4 rounded-lg text-sm font-medium bg-red-950/80 text-red-200 border border-red-500/50';
         status.innerText = err.message || 'Server error recording intake';
@@ -543,7 +677,6 @@
         status.classList.remove('hidden');
         document.getElementById('clerk-farmer-form').reset();
 
-        // Refresh directory cache in background
         loadFarmersDirectory();
       } catch (err) {
         status.className = 'p-4 rounded-lg text-sm font-medium bg-red-950/80 text-red-200 border border-red-500/50';
