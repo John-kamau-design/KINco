@@ -15,6 +15,23 @@
       th, td { border: 1px solid #ddd !important; color: black !important; padding: 8px !important; }
     }
   </style>
+  <!-- PWA Integration -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0F172A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KINco Hub">
+<link rel="apple-touch-icon" href="/icon-192.png">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('Service Worker Registered'))
+        .catch(err => console.error('Service Worker Error:', err));
+    });
+  }
+</script>
 </head>
 <body class="bg-[#0B132B] text-slate-100 min-h-screen font-sans antialiased">
 
