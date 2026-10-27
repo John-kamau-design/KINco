@@ -349,8 +349,8 @@
 
       try {
         // 1. Fetch direct collections
-        const colRes = await fetch('/api/collections', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const res = await fetch('/api/collections/all', {
+        headers: { 'Authorization': `Bearer ${token}` }
         });
         if (colRes.ok) {
           const colData = await colRes.json();

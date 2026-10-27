@@ -3,7 +3,8 @@ import jwt from 'jsonwebtoken';
 import { 
   getFarmerByCode, 
   recordCollection, 
-  getDriverDailySummary 
+  getDriverDailySummary,
+  getAllCollections
 } from '../controllers/collectionController';
 
 const router = Router();
@@ -46,5 +47,6 @@ router.get('/farmer/:code', authenticateToken, getFarmerByCode);
 router.post('/record', authenticateToken, recordCollection);
 router.get('/summary', authenticateToken, getDriverDailySummary);
 router.get('/driver-summary', authenticateToken, getDriverDailySummary); // Alias route for redundancy
+router.get('/all', authenticateToken, getAllCollections);
 
 export default router;

@@ -191,3 +191,47 @@ export const getFarmerByCode = async (req: Request, res: Response) => {
     return res.status(500).json({ message: error.message || 'Server error verifying farmer' });
   }
 };
+
+/**
+ * Get All Direct Station Collections (Facility-Wide for Clerks/Admins)
+ */
+export const getAllCollections = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const role = (user?.role || '').toUpperCase();
+
+    if (!user || (role !== 'CLERK' && role !== 'ADMIN')) {
+      return res.status(403).json({ message: 'Unauthorized: Clerk or Admin access required.' });
+    }
+
+    const { data: collections, error } = await supabase
+      .from('collections')
+      .select(`
+        id, volume_liters, can_count, collected_at, notes, driver_id, payout_status,
+        farmers (id, farmer_code, kid, full_name, route)
+      `)
+      .order('collected_at', { ascending: false });
+
+    if (error) throw error;
+
+    const allCollections = (collections || []).map((item: any) => ({
+      ...item,
+      farmer_name: item.farmers?.full_name || 'Walk-in Farmer',
+      farmer_code: item.farmers?.farmer_code || item.farmers?.kid || 'N/A',
+      route: item.farmers?.route || 'Station Walk-In'
+    }));
+
+    const totalLiters = allCollections.reduce((acc, item) => acc + Number(item.volume_liters || 0), 0);
+
+    return res.status(200).json({
+      success: true,
+      totalLiters,
+      totalCount: allCollections.length,
+      collections: allCollections
+    });
+
+  } catch (error: any) {
+    console.error('Error fetching all collections:', error);
+    return res.status(500).json({ message: error.message || 'Error fetching station collections' });
+  }
+};
