@@ -32,18 +32,22 @@
 
   <!-- NAVIGATION TABS -->
   <div class="max-w-6xl mx-auto px-6 pt-6">
-    <div class="flex border-b border-slate-800 space-x-2">
+    <div class="flex border-b border-slate-800 space-x-2 overflow-x-auto">
       <button id="tab-btn-overview" onclick="switchTab('overview')" 
-              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-[#1C2541]/80">
+              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-[#1C2541]/80 whitespace-nowrap">
         Overview & Operations
       </button>
+      <button id="tab-btn-logs" onclick="switchTab('logs')" 
+              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1C2541]/40 whitespace-nowrap">
+        Direct Intake Logs
+      </button>
       <button id="tab-btn-farmers" onclick="switchTab('farmers')" 
-              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1C2541]/40">
+              class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1C2541]/40 whitespace-nowrap">
         Farmers Directory
       </button>
-      <!-- ADDED PAYOUTS NAVIGATION TAB -->
+      <!-- PAYOUTS NAVIGATION TAB -->
       <a href="/payments.html" 
-         class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-emerald-400 hover:text-emerald-300 hover:bg-[#1C2541]/40 flex items-center gap-1.5">
+         class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-emerald-400 hover:text-emerald-300 hover:bg-[#1C2541]/40 flex items-center gap-1.5 whitespace-nowrap">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -57,6 +61,34 @@
     <!-- VIEW 1: OVERVIEW & OPERATIONS -->
     <div id="view-overview" class="space-y-8">
       
+      <!-- TOP MULTI-TIMEFRAME MILK HISTORY STAT CARDS -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-[#1C2541]/60 p-5 rounded-2xl border border-slate-700/60 shadow-lg relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-2 h-full bg-emerald-500"></div>
+          <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Today Total Collected</p>
+          <p id="admin-stat-today" class="text-2xl font-black text-emerald-400 mt-2 font-mono">0.00 L</p>
+          <p class="text-[10px] text-slate-500 mt-1">Real-time daily intake</p>
+        </div>
+
+        <div class="bg-[#1C2541]/60 p-5 rounded-2xl border border-slate-700/60 shadow-lg">
+          <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Past 7 Days</p>
+          <p id="admin-stat-7day" class="text-2xl font-black text-emerald-300 mt-2 font-mono">0.00 L</p>
+          <p class="text-[10px] text-slate-500 mt-1">Weekly running volume</p>
+        </div>
+
+        <div class="bg-[#1C2541]/60 p-5 rounded-2xl border border-slate-700/60 shadow-lg">
+          <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Past 30 Days</p>
+          <p id="admin-stat-30day" class="text-2xl font-black text-emerald-200 mt-2 font-mono">0.00 L</p>
+          <p class="text-[10px] text-slate-500 mt-1">Monthly total volume</p>
+        </div>
+
+        <div class="bg-[#1C2541]/80 p-5 rounded-2xl border border-emerald-500/40 shadow-lg bg-gradient-to-br from-[#1C2541] to-[#0B132B]">
+          <p class="text-[11px] text-emerald-400 font-extrabold uppercase tracking-wider">Grand Total Intake</p>
+          <p id="admin-stat-grand" class="text-2xl font-black text-white mt-2 font-mono">0.00 L</p>
+          <p class="text-[10px] text-emerald-500/80 mt-1">Facility overall history</p>
+        </div>
+      </div>
+
       <!-- NAVIGATION CARDS -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <a href="/clerk.html" class="bg-[#1C2541]/60 hover:bg-[#1C2541] border border-slate-700/60 p-6 rounded-xl transition group block">
@@ -174,7 +206,42 @@
 
     </div>
 
-    <!-- VIEW 2: DEDICATED FARMERS DIRECTORY -->
+    <!-- VIEW 2: DEDICATED DIRECT INTAKE LOGS TAB -->
+    <div id="view-logs" class="hidden space-y-6">
+      <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-700/60 pb-4">
+          <div>
+            <h2 class="text-2xl font-bold text-emerald-400">Direct Station Intake Logs</h2>
+            <p class="text-xs text-slate-400 mt-1">Real-time facility logs across all clerks and walk-in farmer deliveries.</p>
+          </div>
+          <button onclick="loadAdminDirectLogs()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2 rounded-lg transition font-bold">
+            Refresh Logs
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-700/80 text-slate-400 text-xs uppercase tracking-wider bg-[#0B132B]/50">
+                <th class="py-3 px-4">Time / Date</th>
+                <th class="py-3 px-4">Farmer Name</th>
+                <th class="py-3 px-4">Farmer Code</th>
+                <th class="py-3 px-4">Route</th>
+                <th class="py-3 px-4">Volume (L)</th>
+                <th class="py-3 px-4">Recorded By</th>
+              </tr>
+            </thead>
+            <tbody id="admin-logs-table-body" class="divide-y divide-slate-700/50 text-sm text-slate-200">
+              <tr>
+                <td colspan="6" class="py-8 text-center text-slate-500 font-medium">Loading live intake logs...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- VIEW 3: DEDICATED FARMERS DIRECTORY -->
     <div id="view-farmers" class="hidden space-y-6">
       <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700/60 pb-4 gap-4">
@@ -222,27 +289,132 @@
   <script>
     let allFarmersCache = [];
 
+    document.addEventListener('DOMContentLoaded', () => {
+      loadAdminStationMetrics();
+    });
+
+    // Fetch and aggregate station metrics (Today, 7-Day, 30-Day, Grand Total)
+    async function loadAdminStationMetrics() {
+      const todayEl = document.getElementById('admin-stat-today');
+      const day7El = document.getElementById('admin-stat-7day');
+      const day30El = document.getElementById('admin-stat-30day');
+      const grandEl = document.getElementById('admin-stat-grand');
+
+      try {
+        const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+        const res = await fetch('/api/collections/all', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error('Failed to fetch station collections');
+
+        const data = await res.json();
+        const collections = data.collections || (Array.isArray(data) ? data : []);
+
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 7);
+
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+
+        let todayLiters = 0;
+        let past7DaysLiters = 0;
+        let past30DaysLiters = 0;
+        let grandTotalLiters = 0;
+
+        collections.forEach(item => {
+          const vol = Number(item.volume_liters || 0);
+          const intakeDate = new Date(item.collected_at || item.created_at);
+
+          grandTotalLiters += vol;
+
+          if (intakeDate >= thirtyDaysAgo) past30DaysLiters += vol;
+          if (intakeDate >= sevenDaysAgo) past7DaysLiters += vol;
+          if (intakeDate >= startOfToday) todayLiters += vol;
+        });
+
+        if (todayEl) todayEl.innerText = `${todayLiters.toFixed(2)} L`;
+        if (day7El) day7El.innerText = `${past7DaysLiters.toFixed(2)} L`;
+        if (day30El) day30El.innerText = `${past30DaysLiters.toFixed(2)} L`;
+        if (grandEl) grandEl.innerText = `${grandTotalLiters.toFixed(2)} L`;
+
+      } catch (err) {
+        console.error('Error loading admin station metrics:', err);
+      }
+    }
+
+    // Load Live Direct Walk-In Logs Table
+    async function loadAdminDirectLogs() {
+      const tbody = document.getElementById('admin-logs-table-body');
+      if (!tbody) return;
+
+      tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 animate-pulse">Loading live station logs...</td></tr>`;
+
+      try {
+        const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
+        const res = await fetch('/api/collections/all', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error('Failed to load station logs');
+
+        const data = await res.json();
+        const collections = data.collections || (Array.isArray(data) ? data : []);
+
+        if (collections.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">No direct station intakes logged yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = collections.map(item => `
+          <tr class="hover:bg-slate-700/30 transition">
+            <td class="py-3.5 px-4 text-xs text-slate-300">${new Date(item.collected_at || item.created_at).toLocaleString()}</td>
+            <td class="py-3.5 px-4 font-semibold text-slate-100">${item.farmer_name || 'Walk-in Farmer'}</td>
+            <td class="py-3.5 px-4 font-mono font-bold text-emerald-400">${item.farmer_code || 'N/A'}</td>
+            <td class="py-3.5 px-4 text-slate-300">${item.route || 'Station Walk-In'}</td>
+            <td class="py-3.5 px-4 font-bold text-emerald-400 font-mono">${Number(item.volume_liters || 0).toFixed(2)} L</td>
+            <td class="py-3.5 px-4 text-xs text-slate-400">Station Intake</td>
+          </tr>
+        `).join('');
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-red-400 font-semibold">Error loading live intake logs. Please try again.</td></tr>`;
+      }
+    }
+
     // Tab Navigation Switcher
     function switchTab(tabName) {
       const viewOverview = document.getElementById('view-overview');
+      const viewLogs = document.getElementById('view-logs');
       const viewFarmers = document.getElementById('view-farmers');
+
       const btnOverview = document.getElementById('tab-btn-overview');
+      const btnLogs = document.getElementById('tab-btn-logs');
       const btnFarmers = document.getElementById('tab-btn-farmers');
 
-      if (tabName === 'farmers') {
-        viewOverview.classList.add('hidden');
+      viewOverview.classList.add('hidden');
+      viewLogs.classList.add('hidden');
+      viewFarmers.classList.add('hidden');
+
+      btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1C2541]/40 whitespace-nowrap';
+      btnLogs.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1C2541]/40 whitespace-nowrap';
+      btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1C2541]/40 whitespace-nowrap';
+
+      if (tabName === 'logs') {
+        viewLogs.classList.remove('hidden');
+        btnLogs.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-[#1C2541]/80 whitespace-nowrap';
+        loadAdminDirectLogs();
+      } else if (tabName === 'farmers') {
         viewFarmers.classList.remove('hidden');
-
-        btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-[#1C2541]/80';
-        btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1C2541]/40';
-
+        btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-[#1C2541]/80 whitespace-nowrap';
         loadFarmersDirectory();
       } else {
-        viewFarmers.classList.add('hidden');
         viewOverview.classList.remove('hidden');
-
-        btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-[#1C2541]/80';
-        btnFarmers.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1C2541]/40';
+        btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-[#1C2541]/80 whitespace-nowrap';
+        loadAdminStationMetrics();
       }
     }
 
@@ -348,7 +520,6 @@
           alertBox.textContent = `Farmer registered successfully!${codeMsg}`;
           document.getElementById('farmer-form').reset();
           
-          // Refresh background directory cache
           loadFarmersDirectory();
         } else {
           alertBox.className = 'text-xs font-bold p-3 rounded-lg bg-red-900/50 border border-red-500 text-red-300 block';
