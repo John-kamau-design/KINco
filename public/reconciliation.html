@@ -78,8 +78,37 @@
       </form>
     </section>
 
-    <!-- RECONCILIATION HISTORY LOGS -->
-    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-4">
+    <!-- RECONCILIATION SUMMARY STATS & HISTORY LOGS -->
+    <section class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-5">
+      
+      <!-- TOP METRIC CARDS -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <!-- Today's Intaken Milk -->
+        <div class="bg-slate-900/90 border border-slate-700 p-3.5 rounded-xl shadow">
+          <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Today Intaken Milk</p>
+          <h3 id="stat-today-intake" class="text-lg font-black text-emerald-400 mt-1 font-mono">0.00 L</h3>
+        </div>
+
+        <!-- Total Recorded Intaken Milk -->
+        <div class="bg-slate-900/90 border border-slate-700 p-3.5 rounded-xl shadow">
+          <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Recorded Intake</p>
+          <h3 id="stat-total-intake" class="text-lg font-black text-emerald-400 mt-1 font-mono">0.00 L</h3>
+        </div>
+
+        <!-- Today Variance -->
+        <div class="bg-slate-900/90 border border-slate-700 p-3.5 rounded-xl shadow">
+          <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Today Variance</p>
+          <h3 id="stat-today-variance" class="text-lg font-black text-slate-200 mt-1 font-mono">0.00 L</h3>
+        </div>
+
+        <!-- Total Variance -->
+        <div class="bg-slate-900/90 border border-slate-700 p-3.5 rounded-xl shadow">
+          <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Variance</p>
+          <h3 id="stat-total-variance" class="text-lg font-black text-slate-200 mt-1 font-mono">0.00 L</h3>
+        </div>
+      </div>
+
+      <!-- TABLE HEADER -->
       <div class="flex justify-between items-center border-b border-slate-700 pb-3">
         <div>
           <h2 class="text-lg font-bold text-emerald-400">Reconciliation Audit Logs</h2>
@@ -90,12 +119,13 @@
         </button>
       </div>
 
+      <!-- AUDIT LOGS TABLE -->
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="border-b border-slate-700 text-slate-400 text-[11px] uppercase tracking-wider bg-slate-900/60">
               <th class="py-2.5 px-3">Date</th>
-              <th class="py-2.5 px-3">Route</th>
+              <th class="py-2.5 px-3">Route / Driver</th>
               <th class="py-2.5 px-3">Driver Liters</th>
               <th class="py-2.5 px-3">Station Liters</th>
               <th class="py-2.5 px-3">Variance</th>
@@ -179,6 +209,57 @@
     }
   }
 
+  function updateSummaryMetrics(logs) {
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    let todayIntake = 0;
+    let totalIntake = 0;
+    let todayVariance = 0;
+    let totalVariance = 0;
+
+    if (Array.isArray(logs)) {
+      logs.forEach((item) => {
+        const stationLiters = Number(item.total_station_liters || 0);
+        const variance = Number(item.variance_liters || 0);
+        const dateStr = item.collection_date || (item.created_at ? item.created_at.split('T')[0] : '');
+
+        totalIntake += stationLiters;
+        totalVariance += variance;
+
+        if (dateStr === todayStr) {
+          todayIntake += stationLiters;
+          todayVariance += variance;
+        }
+      });
+    }
+
+    // Today Intake Element
+    const todayIntakeEl = document.getElementById('stat-today-intake');
+    if (todayIntakeEl) todayIntakeEl.innerText = `${todayIntake.toFixed(2)} L`;
+
+    // Total Intake Element
+    const totalIntakeEl = document.getElementById('stat-total-intake');
+    if (totalIntakeEl) totalIntakeEl.innerText = `${totalIntake.toFixed(2)} L`;
+
+    // Today Variance Element
+    const todayVarEl = document.getElementById('stat-today-variance');
+    if (todayVarEl) {
+      todayVarEl.innerText = `${todayVariance > 0 ? '+' : ''}${todayVariance.toFixed(2)} L`;
+      todayVarEl.className = `text-lg font-black mt-1 font-mono ${
+        todayVariance < 0 ? 'text-red-400' : (todayVariance > 0 ? 'text-amber-400' : 'text-emerald-400')
+      }`;
+    }
+
+    // Total Variance Element
+    const totalVarEl = document.getElementById('stat-total-variance');
+    if (totalVarEl) {
+      totalVarEl.innerText = `${totalVariance > 0 ? '+' : ''}${totalVariance.toFixed(2)} L`;
+      totalVarEl.className = `text-lg font-black mt-1 font-mono ${
+        totalVariance < 0 ? 'text-red-400' : (totalVariance > 0 ? 'text-amber-400' : 'text-emerald-400')
+      }`;
+    }
+  }
+
   async function handleReconciliationSubmit(e) {
     e.preventDefault();
     
@@ -252,33 +333,7 @@
         status.classList.remove('hidden');
       }
 
-      // Fetch updated history and optimistically render if table was empty
       await loadReconciliationHistory();
-
-      const newRecord = data.reconciliation || data.metrics;
-      if (newRecord) {
-        const tbody = document.getElementById('recon-table-body');
-        if (tbody && tbody.innerText.includes('No reconciliation records found')) {
-          const driverLitersVal = driverTotal.toFixed(2);
-          const stationLitersVal = stationTotal.toFixed(2);
-          const formattedVariance = variance.toFixed(2);
-          const driverDisplay = driverSelect.options[driverSelect.selectedIndex]?.text || 'Driver';
-          const badge = isFlagged
-            ? `<span class="bg-amber-950 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-[10px] font-bold">FLAGGED</span>`
-            : `<span class="bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[10px] font-bold">MATCHED</span>`;
-
-          tbody.innerHTML = `
-            <tr class="hover:bg-slate-700/30 transition">
-              <td class="py-2.5 px-3 text-slate-300 font-mono">${collection_date}</td>
-              <td class="py-2.5 px-3 font-bold text-slate-100">${driverDisplay}</td>
-              <td class="py-2.5 px-3 font-semibold text-slate-300">${driverLitersVal} L</td>
-              <td class="py-2.5 px-3 font-bold text-emerald-400">${stationLitersVal} L</td>
-              <td class="py-2.5 px-3 font-extrabold ${variance < 0 ? 'text-red-400' : 'text-emerald-400'}">${variance > 0 ? '+' : ''}${formattedVariance} L</td>
-              <td class="py-2.5 px-3">${badge}</td>
-            </tr>
-          `;
-        }
-      }
 
       document.getElementById('reconciliation-form')?.reset();
       if (document.getElementById('recon-date')) {
@@ -313,6 +368,11 @@
 
       const data = await res.json();
       const logs = data.reconciliations || data.logs || data.data || (Array.isArray(data) ? data : []);
+
+      rawReconHistory = logs;
+
+      // Update Top Summary Cards
+      updateSummaryMetrics(logs);
 
       if (logs.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500 font-medium">No reconciliation records found</td></tr>`;
