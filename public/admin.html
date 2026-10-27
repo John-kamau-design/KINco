@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KINCo - Admin Management Center</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      body * { visibility: hidden; }
+      #print-area, #print-area * { visibility: visible; }
+      #print-area { position: absolute; left: 0; top: 0; width: 100%; color: black !important; }
+      .no-print { display: none !important; }
+      table { border: 1px solid #000 !important; width: 100% !important; }
+      th, td { border: 1px solid #ddd !important; color: black !important; padding: 8px !important; }
+    }
+  </style>
 </head>
 <body class="bg-[#0B132B] text-slate-100 min-h-screen font-sans antialiased">
 
@@ -45,7 +55,6 @@
               class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1C2541]/40 whitespace-nowrap">
         Farmers Directory
       </button>
-      <!-- PAYOUTS NAVIGATION TAB -->
       <a href="/payments.html" 
          class="px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-transparent text-emerald-400 hover:text-emerald-300 hover:bg-[#1C2541]/40 flex items-center gap-1.5 whitespace-nowrap">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,23 +98,14 @@
         </div>
       </div>
 
-      <!-- NAVIGATION CARDS -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- SINGLE CLERK STATION NAVIGATION CARD -->
+      <div>
         <a href="/clerk.html" class="bg-[#1C2541]/60 hover:bg-[#1C2541] border border-slate-700/60 p-6 rounded-xl transition group block">
           <h2 class="text-emerald-400 font-bold text-lg group-hover:underline flex items-center gap-1">
             Open Clerk Intake Station &rarr;
           </h2>
           <p class="text-xs text-slate-400 mt-1">
             Offload milk tanks, reconcile intake, and register local drivers
-          </p>
-        </a>
-
-        <a href="/driver.html" class="bg-[#1C2541]/60 hover:bg-[#1C2541] border border-slate-700/60 p-6 rounded-xl transition group block">
-          <h2 class="text-emerald-400 font-bold text-lg group-hover:underline flex items-center gap-1">
-            Open Driver Collection Portal &rarr;
-          </h2>
-          <p class="text-xs text-slate-400 mt-1">
-            Simulate or view driver collection routes & farmer intake
           </p>
         </a>
       </div>
@@ -190,7 +190,6 @@
 
           <div id="farmer-alert" class="hidden text-xs font-bold p-3 rounded-lg"></div>
           
-          <!-- SHAREHOLDER CHECKBOX -->
           <div class="flex items-center space-x-3 pt-2">
             <input type="checkbox" id="farmer-shareholder" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
             <label for="farmer-shareholder" class="text-sm font-bold text-emerald-400 cursor-pointer">
@@ -206,26 +205,58 @@
 
     </div>
 
-    <!-- VIEW 2: DEDICATED DIRECT INTAKE LOGS TAB -->
+    <!-- VIEW 2: DEDICATED DIRECT INTAKE LOGS TAB WITH FILTERS, SEARCH & PRINT -->
     <div id="view-logs" class="hidden space-y-6">
-      <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-4">
-        <div class="flex justify-between items-center border-b border-slate-700/60 pb-4">
+      <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b border-slate-700/60 pb-4 gap-4">
           <div>
             <h2 class="text-2xl font-bold text-emerald-400">Direct Station Intake Logs</h2>
             <p class="text-xs text-slate-400 mt-1">Real-time facility logs across all clerks and walk-in farmer deliveries.</p>
           </div>
-          <button onclick="loadAdminDirectLogs()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2 rounded-lg transition font-bold">
-            Refresh Logs
-          </button>
+          
+          <div class="flex flex-wrap items-center gap-3">
+            <span id="admin-filtered-total-badge" class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 text-xs px-3 py-2 rounded-lg font-mono font-bold">
+              Total: 0.00 L
+            </span>
+            <button onclick="printTableLogs('admin-print-wrapper', 'Admin Direct Station Intake Report')" 
+                    class="bg-emerald-600 hover:bg-emerald-500 text-slate-900 text-xs px-4 py-2 rounded-lg font-bold transition flex items-center gap-1.5 shadow">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+              Print Report
+            </button>
+            <button onclick="loadAdminDirectLogs()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-3 py-2 rounded-lg transition font-bold">
+              Refresh
+            </button>
+          </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <!-- SEARCH AND TIMEFRAME FILTER BAR -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Search Farmer / KID / Code</label>
+            <input type="text" id="admin-log-search" onkeyup="filterAdminLogs()" 
+                   placeholder="Search farmer name, KLF/AKLS code, route..." 
+                   class="w-full bg-[#0B132B] border border-slate-700 focus:border-emerald-500 rounded-lg px-4 py-2.5 text-slate-100 text-sm focus:outline-none transition placeholder-slate-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Timeframe Filter</label>
+            <select id="admin-log-timeframe" onchange="filterAdminLogs()" 
+                    class="w-full bg-[#0B132B] border border-slate-700 focus:border-emerald-500 rounded-lg px-4 py-2.5 text-slate-100 text-sm focus:outline-none transition font-semibold">
+              <option value="all">Live All-Time Intake</option>
+              <option value="7">Last 7 Days</option>
+              <option value="14">Last 14 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="60">Last 60 Days</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="admin-print-wrapper" class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="border-b border-slate-700/80 text-slate-400 text-xs uppercase tracking-wider bg-[#0B132B]/50">
                 <th class="py-3 px-4">Time / Date</th>
                 <th class="py-3 px-4">Farmer Name</th>
-                <th class="py-3 px-4">Farmer Code</th>
+                <th class="py-3 px-4">Farmer Code (KID)</th>
                 <th class="py-3 px-4">Route</th>
                 <th class="py-3 px-4">Volume (L)</th>
                 <th class="py-3 px-4">Recorded By</th>
@@ -288,12 +319,12 @@
   <script src="js/admin.js"></script>
   <script>
     let allFarmersCache = [];
+    let adminLogsCache = [];
 
     document.addEventListener('DOMContentLoaded', () => {
       loadAdminStationMetrics();
     });
 
-    // Fetch and aggregate station metrics (Today, 7-Day, 30-Day, Grand Total)
     async function loadAdminStationMetrics() {
       const todayEl = document.getElementById('admin-stat-today');
       const day7El = document.getElementById('admin-stat-7day');
@@ -313,24 +344,16 @@
 
         const now = new Date();
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const sevenDaysAgo = new Date(now); sevenDaysAgo.setDate(now.getDate() - 7);
+        const thirtyDaysAgo = new Date(now); thirtyDaysAgo.setDate(now.getDate() - 30);
 
-        const sevenDaysAgo = new Date(now);
-        sevenDaysAgo.setDate(now.getDate() - 7);
-
-        const thirtyDaysAgo = new Date(now);
-        thirtyDaysAgo.setDate(now.getDate() - 30);
-
-        let todayLiters = 0;
-        let past7DaysLiters = 0;
-        let past30DaysLiters = 0;
-        let grandTotalLiters = 0;
+        let todayLiters = 0, past7DaysLiters = 0, past30DaysLiters = 0, grandTotalLiters = 0;
 
         collections.forEach(item => {
           const vol = Number(item.volume_liters || 0);
           const intakeDate = new Date(item.collected_at || item.created_at);
 
           grandTotalLiters += vol;
-
           if (intakeDate >= thirtyDaysAgo) past30DaysLiters += vol;
           if (intakeDate >= sevenDaysAgo) past7DaysLiters += vol;
           if (intakeDate >= startOfToday) todayLiters += vol;
@@ -346,7 +369,6 @@
       }
     }
 
-    // Load Live Direct Walk-In Logs Table
     async function loadAdminDirectLogs() {
       const tbody = document.getElementById('admin-logs-table-body');
       if (!tbody) return;
@@ -362,30 +384,88 @@
         if (!res.ok) throw new Error('Failed to load station logs');
 
         const data = await res.json();
-        const collections = data.collections || (Array.isArray(data) ? data : []);
-
-        if (collections.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">No direct station intakes logged yet.</td></tr>`;
-          return;
-        }
-
-        tbody.innerHTML = collections.map(item => `
-          <tr class="hover:bg-slate-700/30 transition">
-            <td class="py-3.5 px-4 text-xs text-slate-300">${new Date(item.collected_at || item.created_at).toLocaleString()}</td>
-            <td class="py-3.5 px-4 font-semibold text-slate-100">${item.farmer_name || 'Walk-in Farmer'}</td>
-            <td class="py-3.5 px-4 font-mono font-bold text-emerald-400">${item.farmer_code || 'N/A'}</td>
-            <td class="py-3.5 px-4 text-slate-300">${item.route || 'Station Walk-In'}</td>
-            <td class="py-3.5 px-4 font-bold text-emerald-400 font-mono">${Number(item.volume_liters || 0).toFixed(2)} L</td>
-            <td class="py-3.5 px-4 text-xs text-slate-400">Station Intake</td>
-          </tr>
-        `).join('');
+        adminLogsCache = data.collections || (Array.isArray(data) ? data : []);
+        filterAdminLogs();
 
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-red-400 font-semibold">Error loading live intake logs. Please try again.</td></tr>`;
       }
     }
 
-    // Tab Navigation Switcher
+    function filterAdminLogs() {
+      const query = document.getElementById('admin-log-search').value.toLowerCase();
+      const timeframe = document.getElementById('admin-log-timeframe').value;
+      const tbody = document.getElementById('admin-logs-table-body');
+      const badge = document.getElementById('admin-filtered-total-badge');
+
+      let filtered = [...adminLogsCache];
+
+      // Timeframe filter
+      if (timeframe !== 'all') {
+        const days = parseInt(timeframe, 10);
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        filtered = filtered.filter(item => new Date(item.collected_at || item.created_at) >= cutoff);
+      }
+
+      // Search filter
+      if (query) {
+        filtered = filtered.filter(item => 
+          (item.farmer_name && item.farmer_name.toLowerCase().includes(query)) ||
+          (item.farmer_code && item.farmer_code.toLowerCase().includes(query)) ||
+          (item.route && item.route.toLowerCase().includes(query))
+        );
+      }
+
+      const totalLiters = filtered.reduce((acc, item) => acc + Number(item.volume_liters || 0), 0);
+      if (badge) badge.textContent = `Filtered Total: ${totalLiters.toFixed(2)} L`;
+
+      if (!tbody) return;
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">No matching intake records found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => `
+        <tr class="hover:bg-slate-700/30 transition">
+          <td class="py-3.5 px-4 text-xs text-slate-300">${new Date(item.collected_at || item.created_at).toLocaleString()}</td>
+          <td class="py-3.5 px-4 font-semibold text-slate-100">${item.farmer_name || 'Walk-in Farmer'}</td>
+          <td class="py-3.5 px-4 font-mono font-bold text-emerald-400">${item.farmer_code || 'N/A'}</td>
+          <td class="py-3.5 px-4 text-slate-300">${item.route || 'Station Walk-In'}</td>
+          <td class="py-3.5 px-4 font-bold text-emerald-400 font-mono">${Number(item.volume_liters || 0).toFixed(2)} L</td>
+          <td class="py-3.5 px-4 text-xs text-slate-400">Station Intake</td>
+        </tr>
+      `).join('');
+    }
+
+    function printTableLogs(elementId, title) {
+      const content = document.getElementById(elementId).outerHTML;
+      const printWindow = window.open('', '', 'height=600,width=800');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${title}</title>
+            <style>
+              body { font-family: sans-serif; padding: 20px; }
+              h1 { color: #047857; margin-bottom: 5px; }
+              p { color: #666; font-size: 12px; margin-bottom: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+              th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; font-size: 12px; }
+              th { background-color: #f1f5f9; color: #0f172a; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <h1>KINCo Milk Station - ${title}</h1>
+            <p>Printed on: ${new Date().toLocaleString()}</p>
+            ${content}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
+    }
+
     function switchTab(tabName) {
       const viewOverview = document.getElementById('view-overview');
       const viewLogs = document.getElementById('view-logs');
@@ -418,20 +498,16 @@
       }
     }
 
-    // Fetch farmers directory
     async function loadFarmersDirectory() {
       const tbody = document.getElementById('farmers-table-body');
       const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
-
       tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 animate-pulse">Loading farmers directory...</td></tr>`;
 
       try {
         const res = await fetch('/api/farmers', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-
         if (!res.ok) throw new Error('Failed to load farmers list');
-
         allFarmersCache = await res.json();
         renderFarmersTable(allFarmersCache);
       } catch (err) {
@@ -439,7 +515,6 @@
       }
     }
 
-    // Render farmers table with sequential row numbers
     function renderFarmersTable(farmers) {
       const tbody = document.getElementById('farmers-table-body');
       if (!tbody) return;
@@ -474,7 +549,6 @@
       }).join('');
     }
 
-    // Live filter logic
     function filterFarmersDirectory() {
       const query = document.getElementById('farmer-search-input').value.toLowerCase();
       const filtered = allFarmersCache.filter(f => 
@@ -487,7 +561,6 @@
       renderFarmersTable(filtered);
     }
 
-    // Farmer Registration submit handler
     async function handleFarmerRegistration(e) {
       e.preventDefault();
       const alertBox = document.getElementById('farmer-alert');
@@ -519,7 +592,6 @@
           const codeMsg = data.farmer && data.farmer.farmer_code ? ` (Assigned ID: ${data.farmer.farmer_code})` : '';
           alertBox.textContent = `Farmer registered successfully!${codeMsg}`;
           document.getElementById('farmer-form').reset();
-          
           loadFarmersDirectory();
         } else {
           alertBox.className = 'text-xs font-bold p-3 rounded-lg bg-red-900/50 border border-red-500 text-red-300 block';

@@ -17,7 +17,6 @@
       </div>
     </div>
     <div class="flex items-center space-x-3">
-      <!-- Direct Reconciliation Navigation Button -->
       <a href="/reconciliation.html" 
          class="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-lg border border-emerald-400/40 shadow-md transition">
         <svg class="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -26,7 +25,6 @@
         <span>Offload Reconciliation</span>
       </a>
 
-      <!-- Direct Payouts Navigation Button -->
       <a href="/payments.html" 
          class="inline-flex items-center space-x-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs px-4 py-2 rounded-lg border border-emerald-400/40 shadow-md transition">
         <svg class="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +66,6 @@
     </div>
   </div>
 
-  <!-- Main Container -->
   <main class="max-w-5xl mx-auto p-6 space-y-8">
 
     <!-- VIEW 1: STATION OVERVIEW & ONBOARDING -->
@@ -102,7 +99,7 @@
         </div>
       </div>
 
-      <!-- Farmer Registration Section for Clerks -->
+      <!-- Farmer Registration Section -->
       <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
         <div class="border-b border-slate-700 pb-4 mb-6">
           <h2 class="text-xl font-bold text-emerald-400">Register New Farmer</h2>
@@ -137,7 +134,6 @@
 
           <div id="clerk-farmer-status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
           
-          <!-- SHAREHOLDER CHECKBOX -->
           <div class="flex items-center space-x-3 pt-2">
             <input type="checkbox" id="clerk-farmer-shareholder" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
             <label for="clerk-farmer-shareholder" class="text-sm font-semibold text-emerald-400 cursor-pointer">
@@ -150,7 +146,7 @@
         </form>
       </section>
 
-      <!-- Driver Onboarding Section for Clerks -->
+      <!-- Driver Onboarding Section -->
       <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
         <div class="border-b border-slate-700 pb-4 mb-6">
           <h2 class="text-xl font-bold text-emerald-400">Register Route Driver</h2>
@@ -224,7 +220,6 @@
               <div id="verify-badge" class="hidden mt-2 text-xs font-bold px-3 py-1.5 rounded-md"></div>
             </div>
             
-            <!-- LITERS DELIVERED DROP-DOWN (Quarter-Liter Increments up to 100.00L) -->
             <div>
               <label class="block text-xs font-semibold uppercase text-slate-300 mb-1.5">Liters Delivered</label>
               <select id="intake-liters" required 
@@ -255,19 +250,51 @@
         </form>
       </section>
 
-      <!-- DIRECT STATION INTAKE AUDIT TABLE -->
+      <!-- DIRECT STATION INTAKE AUDIT TABLE WITH SEARCH, FILTER & PRINT -->
       <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
-        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b border-slate-700 pb-3 gap-3">
           <div>
             <h2 class="text-base font-bold text-emerald-400">Direct Station Walk-In Logs</h2>
             <p class="text-xs text-slate-400">Milk delivered directly by farmers at the station intake desk.</p>
           </div>
-          <button id="refresh-log-btn" onclick="loadDirectIntakes()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded-lg font-bold text-slate-200 transition">
-            Refresh Log
-          </button>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <span id="clerk-filtered-total-badge" class="bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 text-xs px-3 py-2 rounded-lg font-mono font-bold">
+              Total: 0.00 L
+            </span>
+            <button onclick="printClerkLogs()" 
+                    class="bg-emerald-600 hover:bg-emerald-500 text-slate-900 text-xs px-4 py-2 rounded-lg font-bold transition flex items-center gap-1.5 shadow">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+              Print Report
+            </button>
+            <button id="refresh-log-btn" onclick="loadDirectIntakes()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-2 rounded-lg font-bold text-slate-200 transition">
+              Refresh
+            </button>
+          </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <!-- SEARCH AND TIMEFRAME FILTER BAR -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Search Farmer / KID / Code</label>
+            <input type="text" id="clerk-log-search" onkeyup="filterClerkLogs()" 
+                   placeholder="Search farmer name, KLF/AKLS code, route..." 
+                   class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg px-4 py-2.5 text-slate-100 text-sm focus:outline-none transition placeholder-slate-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Timeframe Filter</label>
+            <select id="clerk-log-timeframe" onchange="filterClerkLogs()" 
+                    class="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg px-4 py-2.5 text-slate-100 text-sm focus:outline-none transition font-semibold">
+              <option value="all">Live All-Time Intake</option>
+              <option value="7">Last 7 Days</option>
+              <option value="14">Last 14 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="60">Last 60 Days</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="clerk-print-wrapper" class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="border-b border-slate-700 text-slate-400 text-[11px] uppercase tracking-wider bg-slate-900/60">
@@ -333,17 +360,13 @@
 
   <script>
     let allFarmersCache = [];
+    let clerkLogsCache = [];
 
-    // Populate Liters Dropdown in 0.25 L increments up to 100.00 L
     function populateLitersDropdown() {
       const selectEl = document.getElementById('intake-liters');
       if (!selectEl) return;
 
-      const fracMap = {
-        '0.25': '¼',
-        '0.50': '½',
-        '0.75': '¾'
-      };
+      const fracMap = { '0.25': '¼', '0.50': '½', '0.75': '¾' };
 
       for (let i = 25; i <= 10000; i += 25) {
         const value = (i / 100).toFixed(2);
@@ -367,7 +390,6 @@
       }
     }
 
-    // Verify session and load summary data
     document.addEventListener('DOMContentLoaded', () => {
       const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
       const userStr = localStorage.getItem('kinco_user');
@@ -384,10 +406,7 @@
       loadDirectIntakes();
     });
 
-    // Fetch and calculate multi-timeframe station totals (Today, 7-Day, 30-Day, Grand Total)
     async function loadDirectIntakes() {
-      const tableBody = document.querySelector('#direct-intakes-table-body');
-      
       const todayEl = document.getElementById('stat-today-intake');
       const day7El = document.getElementById('stat-7day-intake');
       const day30El = document.getElementById('stat-30day-intake');
@@ -402,75 +421,108 @@
         if (!res.ok) throw new Error('Failed to fetch station collections');
 
         const data = await res.json();
-        const collections = data.collections || (Array.isArray(data) ? data : []);
+        clerkLogsCache = data.collections || (Array.isArray(data) ? data : []);
 
-        // --- Calculate Time Bucket Aggregations ---
         const now = new Date();
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const sevenDaysAgo = new Date(now); sevenDaysAgo.setDate(now.getDate() - 7);
+        const thirtyDaysAgo = new Date(now); thirtyDaysAgo.setDate(now.getDate() - 30);
 
-        const sevenDaysAgo = new Date(now);
-        sevenDaysAgo.setDate(now.getDate() - 7);
+        let todayLiters = 0, past7DaysLiters = 0, past30DaysLiters = 0, grandTotalLiters = 0;
 
-        const thirtyDaysAgo = new Date(now);
-        thirtyDaysAgo.setDate(now.getDate() - 30);
-
-        let todayLiters = 0;
-        let past7DaysLiters = 0;
-        let past30DaysLiters = 0;
-        let grandTotalLiters = 0;
-
-        collections.forEach(item => {
+        clerkLogsCache.forEach(item => {
           const vol = Number(item.volume_liters || 0);
           const intakeDate = new Date(item.collected_at || item.created_at);
 
           grandTotalLiters += vol;
-
-          if (intakeDate >= thirtyDaysAgo) {
-            past30DaysLiters += vol;
-          }
-
-          if (intakeDate >= sevenDaysAgo) {
-            past7DaysLiters += vol;
-          }
-
-          if (intakeDate >= startOfToday) {
-            todayLiters += vol;
-          }
+          if (intakeDate >= thirtyDaysAgo) past30DaysLiters += vol;
+          if (intakeDate >= sevenDaysAgo) past7DaysLiters += vol;
+          if (intakeDate >= startOfToday) todayLiters += vol;
         });
 
-        // --- Render Stat Cards ---
         if (todayEl) todayEl.innerText = `${todayLiters.toFixed(2)} L`;
         if (day7El) day7El.innerText = `${past7DaysLiters.toFixed(2)} L`;
         if (day30El) day30El.innerText = `${past30DaysLiters.toFixed(2)} L`;
         if (grandEl) grandEl.innerText = `${grandTotalLiters.toFixed(2)} L`;
 
-        // --- Render Table Rows ---
-        if (tableBody) {
-          if (collections.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400">No milk intake records found.</td></tr>`;
-            return;
-          }
-
-          tableBody.innerHTML = collections.map(item => `
-            <tr class="hover:bg-slate-700/30 transition">
-              <td class="py-3 px-4 text-slate-300">${new Date(item.collected_at || item.created_at).toLocaleString()}</td>
-              <td class="py-3 px-4 font-medium text-white">${item.farmer_name || 'Walk-in Farmer'} <span class="text-xs text-slate-400">(${item.farmer_code || 'N/A'})</span></td>
-              <td class="py-3 px-4 text-slate-300">${item.route || 'Station Walk-In'}</td>
-              <td class="py-3 px-4 font-semibold text-emerald-400 font-mono">${Number(item.volume_liters || 0).toFixed(2)} L</td>
-              <td class="py-3 px-4 text-slate-400">Station Intake</td>
-            </tr>
-          `).join('');
-        }
+        filterClerkLogs();
 
       } catch (err) {
         console.error('Error loading direct intakes:', err);
-        if (tableBody) {
-          tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-red-400 font-semibold">Error loading direct intakes table</td></tr>`;
-        }
       }
     }
 
-    // Tab Navigation Switcher
+    function filterClerkLogs() {
+      const query = document.getElementById('clerk-log-search').value.toLowerCase();
+      const timeframe = document.getElementById('clerk-log-timeframe').value;
+      const tableBody = document.querySelector('#direct-intakes-table-body');
+      const badge = document.getElementById('clerk-filtered-total-badge');
+
+      let filtered = [...clerkLogsCache];
+
+      if (timeframe !== 'all') {
+        const days = parseInt(timeframe, 10);
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        filtered = filtered.filter(item => new Date(item.collected_at || item.created_at) >= cutoff);
+      }
+
+      if (query) {
+        filtered = filtered.filter(item => 
+          (item.farmer_name && item.farmer_name.toLowerCase().includes(query)) ||
+          (item.farmer_code && item.farmer_code.toLowerCase().includes(query)) ||
+          (item.route && item.route.toLowerCase().includes(query))
+        );
+      }
+
+      const totalLiters = filtered.reduce((acc, item) => acc + Number(item.volume_liters || 0), 0);
+      if (badge) badge.textContent = `Filtered Total: ${totalLiters.toFixed(2)} L`;
+
+      if (!tableBody) return;
+      if (filtered.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400">No matching milk intake records found.</td></tr>`;
+        return;
+      }
+
+      tableBody.innerHTML = filtered.map(item => `
+        <tr class="hover:bg-slate-700/30 transition">
+          <td class="py-3 px-4 text-slate-300">${new Date(item.collected_at || item.created_at).toLocaleString()}</td>
+          <td class="py-3 px-4 font-medium text-white">${item.farmer_name || 'Walk-in Farmer'} <span class="text-xs text-slate-400">(${item.farmer_code || 'N/A'})</span></td>
+          <td class="py-3 px-4 text-slate-300">${item.route || 'Station Walk-In'}</td>
+          <td class="py-3 px-4 font-semibold text-emerald-400 font-mono">${Number(item.volume_liters || 0).toFixed(2)} L</td>
+          <td class="py-3 px-4 text-slate-400">Station Intake</td>
+        </tr>
+      `).join('');
+    }
+
+    function printClerkLogs() {
+      const content = document.getElementById('clerk-print-wrapper').outerHTML;
+      const printWindow = window.open('', '', 'height=600,width=800');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Direct Station Intake Report</title>
+            <style>
+              body { font-family: sans-serif; padding: 20px; }
+              h1 { color: #047857; margin-bottom: 5px; }
+              p { color: #666; font-size: 12px; margin-bottom: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+              th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; font-size: 12px; }
+              th { background-color: #f1f5f9; color: #0f172a; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <h1>KINCo Milk Station - Direct Station Intake Report</h1>
+            <p>Printed on: ${new Date().toLocaleString()}</p>
+            ${content}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
+    }
+
     function switchTab(tabName) {
       const viewOverview = document.getElementById('view-overview');
       const viewIntake = document.getElementById('view-intake');
@@ -503,7 +555,6 @@
       }
     }
 
-    // Verify Farmer Code inline before submit
     async function verifyFarmerCode() {
       const codeInput = document.getElementById('intake-farmer-code');
       const badge = document.getElementById('verify-badge');
@@ -551,7 +602,6 @@
       }
     }
 
-    // Fetch farmers directory
     async function loadFarmersDirectory() {
       const tbody = document.getElementById('farmers-table-body');
       const token = localStorage.getItem('kinco_token') || localStorage.getItem('token');
@@ -572,7 +622,6 @@
       }
     }
 
-    // Render farmers table with sequential row numbers and non-wrapping badges
     function renderFarmersTable(farmers) {
       const tbody = document.getElementById('farmers-table-body');
       if (!tbody) return;
@@ -607,7 +656,6 @@
       }).join('');
     }
 
-    // Live search filter
     function filterFarmersDirectory() {
       const query = document.getElementById('farmer-search-input').value.toLowerCase();
       const filtered = allFarmersCache.filter(f => 
@@ -620,7 +668,6 @@
       renderFarmersTable(filtered);
     }
 
-    // Handle Milk Intake Submission
     async function handleClerkMilkIntake(e) {
       e.preventDefault();
       const btn = document.getElementById('intake-btn');
@@ -677,7 +724,6 @@
       }
     }
 
-    // Handle Farmer Registration from Clerk Station
     async function handleClerkFarmerRegistration(e) {
       e.preventDefault();
       const btn = document.getElementById('clerk-farmer-btn');
@@ -726,7 +772,6 @@
       }
     }
 
-    // Handle Driver Onboarding
     async function handleClerkOnboarding(e) {
       e.preventDefault();
       const btn = document.getElementById('clerk-onboard-btn');
