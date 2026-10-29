@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KINCo - Admin Management Center</title>
+  <title>KINco - Admin Management Center</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @media print {
@@ -16,22 +16,22 @@
     }
   </style>
   <!-- PWA Integration -->
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0F172A">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="KINco Hub">
-<link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0F172A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KINco Hub">
+  <link rel="apple-touch-icon" href="/icon-192.png">
 
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('Service Worker Registered'))
-        .catch(err => console.error('Service Worker Error:', err));
-    });
-  }
-</script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('Service Worker Registered'))
+          .catch(err => console.error('Service Worker Error:', err));
+      });
+    }
+  </script>
 </head>
 <body class="bg-[#0B132B] text-slate-100 min-h-screen font-sans antialiased">
 
@@ -224,6 +224,15 @@
 
     <!-- VIEW 2: DEDICATED DIRECT INTAKE LOGS TAB WITH FILTERS, SEARCH & PRINT -->
     <div id="view-logs" class="hidden space-y-6">
+      <!-- Back Navigation Bar -->
+      <div class="flex items-center justify-between bg-[#1C2541] border border-slate-700/60 px-4 py-3 rounded-xl shadow-md">
+        <button onclick="switchTab('overview')" class="inline-flex items-center space-x-2 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+          <span>Back to System Overview</span>
+        </button>
+        <span class="text-xs text-slate-400 font-mono">Active View: Direct Intake Logs</span>
+      </div>
+
       <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b border-slate-700/60 pb-4 gap-4">
           <div>
@@ -291,6 +300,15 @@
 
     <!-- VIEW 3: DEDICATED FARMERS DIRECTORY -->
     <div id="view-farmers" class="hidden space-y-6">
+      <!-- Back Navigation Bar -->
+      <div class="flex items-center justify-between bg-[#1C2541] border border-slate-700/60 px-4 py-3 rounded-xl shadow-md">
+        <button onclick="switchTab('overview')" class="inline-flex items-center space-x-2 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+          <span>Back to System Overview</span>
+        </button>
+        <span class="text-xs text-slate-400 font-mono">Active View: Farmers Directory</span>
+      </div>
+
       <section class="bg-[#1C2541]/60 border border-slate-700/60 rounded-xl p-6 md:p-8 shadow-xl space-y-6">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700/60 pb-4 gap-4">
           <div>
@@ -472,7 +490,7 @@
             </style>
           </head>
           <body>
-            <h1>KINCo Milk Station - ${title}</h1>
+            <h1>KINco Milk Station - ${title}</h1>
             <p>Printed on: ${new Date().toLocaleString()}</p>
             ${content}
           </body>
@@ -513,6 +531,7 @@
         btnOverview.className = 'px-5 py-3 text-sm font-bold rounded-t-xl transition border-b-2 border-emerald-400 text-emerald-400 bg-[#1C2541]/80 whitespace-nowrap';
         loadAdminStationMetrics();
       }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function loadFarmersDirectory() {
