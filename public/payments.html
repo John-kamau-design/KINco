@@ -38,8 +38,8 @@
     </div>
 
     <div class="flex items-center space-x-3">
-            <a href="/clerk.html" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition">
-        Clerk Station &rarr;
+      <a id="roleBackBtn" href="/clerk.html" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition flex items-center gap-1.5">
+        <span>&larr; Return to Dashboard</span>
       </a>
     </div>
   </header>
@@ -259,6 +259,26 @@
     let activeFarmerData = null;
     let allRawPayoutLogs = [];
     let allPendingPayoutLogs = [];
+
+    // Dynamic role-based back button router on DOM Load
+    document.addEventListener('DOMContentLoaded', () => {
+      const backBtn = document.getElementById('roleBackBtn');
+      try {
+        const userStr = localStorage.getItem('kinco_user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          if (user && user.role && user.role.toUpperCase() === 'ADMIN') {
+            backBtn.href = '/admin.html';
+            backBtn.innerHTML = '<span>&larr; Return to Admin Center</span>';
+          } else {
+            backBtn.href = '/clerk.html';
+            backBtn.innerHTML = '<span>&larr; Return to Clerk Station</span>';
+          }
+        }
+      } catch (e) {
+        backBtn.href = '/clerk.html';
+      }
+    });
 
     function getToken() {
       return localStorage.getItem('kinco_token') || localStorage.getItem('token');

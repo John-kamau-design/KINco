@@ -35,6 +35,9 @@
       </div>
     </div>
     <div class="flex items-center space-x-3">
+      <a id="roleBackBtn" href="/clerk.html" class="bg-slate-700/80 hover:bg-slate-700 text-slate-200 font-bold text-xs px-3 py-1.5 rounded-lg transition shadow border border-slate-600">
+        &larr; Dashboard
+      </a>
       <span id="clerk-user-display" class="text-xs font-semibold bg-slate-700/80 px-2.5 py-1 rounded-full border border-slate-600">Clerk</span>
       <button onclick="logout()" class="bg-red-600/80 hover:bg-red-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition shadow">Exit</button>
     </div>
@@ -177,6 +180,18 @@
       const userDisplay = document.getElementById('clerk-user-display');
       if (userDisplay) {
         userDisplay.innerText = `${user.full_name || 'Clerk'} (${user.role || 'CLERK'})`;
+      }
+
+      // Dynamic role-based back button router
+      const backBtn = document.getElementById('roleBackBtn');
+      if (backBtn && user && user.role) {
+        if (user.role.toUpperCase() === 'ADMIN') {
+          backBtn.href = '/admin.html';
+          backBtn.innerHTML = '&larr; Admin Center';
+        } else {
+          backBtn.href = '/clerk.html';
+          backBtn.innerHTML = '&larr; Dashboard';
+        }
       }
     } catch (e) {}
 
